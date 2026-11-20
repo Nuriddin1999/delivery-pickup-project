@@ -1,0 +1,6 @@
+services:
+  app:
+    build: .
+    ports:
+      # APP_PORT comes from .env in this folder (docker compose reads it itself).
+      - "${APP_PORT:?set APP_PORT in .env (copy .env.example)}:8080"

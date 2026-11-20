@@ -1,0 +1,355 @@
+{
+  "hub": {
+    "name": "Hub",
+    "lat": 41.3111,
+    "lng": 69.2797
+  },
+  "regions": [
+    "Chilonzor",
+    "Uchtepa",
+    "Yunusobod",
+    "Mirzo Ulug'bek",
+    "Yakkasaroy",
+    "Sergeli",
+    "Yashnobod",
+    "Bektemir"
+  ],
+  "couriers": [
+    {
+      "id": "c1",
+      "name": "Aziz",
+      "active": true,
+      "kinds": [
+        "pickup",
+        "delivery"
+      ],
+      "regions": [
+        "Chilonzor",
+        "Uchtepa"
+      ],
+      "max_parcels": 8,
+      "max_kg": 40,
+      "start": {
+        "lat": 41.2790,
+        "lng": 69.1980
+      }
+    },
+    {
+      "id": "c2",
+      "name": "Dilnoza",
+      "active": true,
+      "kinds": [
+        "pickup"
+      ],
+      "regions": [
+        "Yunusobod",
+        "Mirzo Ulug'bek"
+      ],
+      "max_parcels": 6,
+      "max_kg": 30,
+      "start": {
+        "lat": 41.3600,
+        "lng": 69.2900
+      }
+    },
+    {
+      "id": "c3",
+      "name": "Bekzod",
+      "active": true,
+      "kinds": [
+        "delivery"
+      ],
+      "regions": [
+        "Yunusobod",
+        "Mirzo Ulug'bek",
+        "Yashnobod"
+      ],
+      "max_parcels": 5,
+      "max_kg": 25,
+      "start": {
+        "lat": 41.3200,
+        "lng": 69.3100
+      }
+    },
+    {
+      "id": "c4",
+      "name": "Sardor",
+      "active": false,
+      "kinds": [
+        "pickup",
+        "delivery"
+      ],
+      "regions": [
+        "Sergeli"
+      ],
+      "max_parcels": 8,
+      "max_kg": 40,
+      "start": {
+        "lat": 41.2300,
+        "lng": 69.2200
+      }
+    },
+    {
+      "id": "c5",
+      "name": "Kamola",
+      "active": true,
+      "kinds": [
+        "pickup",
+        "delivery"
+      ],
+      "regions": [
+        "Sergeli",
+        "Yakkasaroy",
+        "Chilonzor"
+      ],
+      "max_parcels": 3,
+      "max_kg": 15,
+      "start": {
+        "lat": 41.2600,
+        "lng": 69.2300
+      }
+    },
+    {
+      "id": "c6",
+      "name": "Jasur",
+      "active": true,
+      "kinds": [
+        "delivery"
+      ],
+      "regions": [],
+      "max_parcels": 6,
+      "max_kg": 30,
+      "start": {
+        "lat": 41.3000,
+        "lng": 69.2600
+      }
+    }
+  ],
+  "orders": [
+    {
+      "id": "o01",
+      "type": "pickup",
+      "region": "Chilonzor",
+      "lat": 41.2760,
+      "lng": 69.2040,
+      "weight_kg": 2.5,
+      "created_at": "2026-11-20T08:05:00+05:00"
+    },
+    {
+      "id": "o02",
+      "type": "delivery",
+      "region": "Yunusobod",
+      "lat": 41.3655,
+      "lng": 69.2850,
+      "weight_kg": 1.2,
+      "created_at": "2026-11-20T08:10:00+05:00"
+    },
+    {
+      "id": "o03",
+      "type": "pickup",
+      "region": "Yunusobod",
+      "lat": 41.3700,
+      "lng": 69.2950,
+      "weight_kg": 4.0,
+      "created_at": "2026-11-20T08:12:00+05:00"
+    },
+    {
+      "id": "o04",
+      "type": "delivery",
+      "region": "Sergeli",
+      "lat": 41.2250,
+      "lng": 69.2150,
+      "weight_kg": 6.0,
+      "created_at": "2026-11-20T08:20:00+05:00"
+    },
+    {
+      "id": "o05",
+      "type": "pickup",
+      "region": "Uchtepa",
+      "lat": 41.2920,
+      "lng": 69.1720,
+      "weight_kg": 3.0,
+      "created_at": "2026-11-20T08:25:00+05:00"
+    },
+    {
+      "id": "o06",
+      "type": "delivery",
+      "region": " chilonzor ",
+      "lat": 41.2700,
+      "lng": 69.2100,
+      "weight_kg": 1.0,
+      "created_at": "2026-11-20T08:30:00+05:00"
+    },
+    {
+      "id": "o07",
+      "type": "pickup",
+      "region": "Yashnobod",
+      "lat": 41.2960,
+      "lng": 69.3320,
+      "weight_kg": 2.0,
+      "created_at": "2026-11-20T08:35:00+05:00"
+    },
+    {
+      "id": "o08",
+      "type": "delivery",
+      "region": "Mirzo Ulug'bek",
+      "lat": 41.3320,
+      "lng": 69.3380,
+      "weight_kg": 0,
+      "created_at": "2026-11-20T08:40:00+05:00"
+    },
+    {
+      "id": "o09",
+      "type": "delivery",
+      "region": "Sergeli",
+      "lat": 41.2300,
+      "lng": 69.2250,
+      "weight_kg": 5.0,
+      "created_at": "2026-11-20T08:45:00+05:00"
+    },
+    {
+      "id": "o10",
+      "type": "pickup",
+      "region": "Chilonzor",
+      "lat": 41.2800,
+      "lng": 69.1990,
+      "weight_kg": 45.0,
+      "created_at": "2026-11-20T08:50:00+05:00"
+    },
+    {
+      "id": "o11",
+      "type": "delivery",
+      "region": "Mirzo Ulug'bek",
+      "lat": 41.3280,
+      "lng": 69.3330,
+      "weight_kg": 3.5,
+      "created_at": "2026-11-20T08:55:00+05:00"
+    },
+    {
+      "id": "o12",
+      "type": "delivery",
+      "region": "Bektemir",
+      "lat": 41.2100,
+      "lng": 69.3330,
+      "weight_kg": 2.0,
+      "created_at": "2026-11-20T09:00:00+05:00"
+    },
+    {
+      "id": "o13",
+      "type": "pickup",
+      "region": "Mirzo Ulug'bek",
+      "lat": 41.3350,
+      "lng": 69.3400,
+      "weight_kg": 7.5,
+      "created_at": "2026-11-20T09:05:00+05:00"
+    },
+    {
+      "id": "o14",
+      "type": "delivery",
+      "region": "Yakkasaroy",
+      "lat": 41.2870,
+      "lng": 69.2530,
+      "weight_kg": 2.0,
+      "created_at": "2026-11-20T09:10:00+05:00"
+    },
+    {
+      "id": "o15",
+      "type": "return",
+      "region": "Chilonzor",
+      "lat": 41.2750,
+      "lng": 69.2000,
+      "weight_kg": 1.0,
+      "created_at": "2026-11-20T09:15:00+05:00"
+    },
+    {
+      "id": "o16",
+      "type": "delivery",
+      "region": "Olmazor",
+      "lat": 41.3420,
+      "lng": 69.2150,
+      "weight_kg": 1.5,
+      "created_at": "2026-11-20T09:20:00+05:00"
+    },
+    {
+      "id": "o17",
+      "type": "delivery",
+      "region": "Yunusobod",
+      "lat": 41.3600,
+      "lng": 69.2800,
+      "weight_kg": 8.0,
+      "created_at": "2026-11-20T09:25:00+05:00"
+    },
+    {
+      "id": "o18",
+      "type": "pickup",
+      "region": "Sergeli",
+      "lat": 41.2280,
+      "lng": 69.2200,
+      "weight_kg": 3.0,
+      "created_at": "2026-11-20T09:30:00+05:00"
+    },
+    {
+      "id": "o19",
+      "type": "delivery",
+      "region": "Yashnobod",
+      "lat": 41.2940,
+      "lng": 69.3280,
+      "weight_kg": 1.0,
+      "created_at": "2026-11-20T09:35:00+05:00"
+    },
+    {
+      "id": "o20",
+      "type": "delivery",
+      "region": "Chilonzor",
+      "lat": null,
+      "lng": 69.2050,
+      "weight_kg": 1.0,
+      "created_at": "2026-11-20T09:40:00+05:00"
+    },
+    {
+      "id": "o03",
+      "type": "pickup",
+      "region": "Yunusobod",
+      "lat": 41.3710,
+      "lng": 69.2960,
+      "weight_kg": 4.0,
+      "created_at": "2026-11-20T09:45:00+05:00"
+    },
+    {
+      "id": "o21",
+      "type": "delivery",
+      "region": "Mirzo Ulug'bek",
+      "lat": 41.3310,
+      "lng": 69.3360,
+      "weight_kg": 12.0,
+      "created_at": "2026-11-20T09:50:00+05:00"
+    },
+    {
+      "id": "o22",
+      "type": "delivery",
+      "region": "Yunusobod",
+      "lat": 41.3620,
+      "lng": 69.2830,
+      "weight_kg": 2.0,
+      "created_at": "2026-11-20T09:55:00+05:00"
+    },
+    {
+      "id": "o23",
+      "type": "pickup",
+      "region": "Uchtepa",
+      "lat": 41.2880,
+      "lng": 69.1690,
+      "weight_kg": 1.5,
+      "created_at": "2026-11-20T08:00:00+05:00"
+    },
+    {
+      "id": "o24",
+      "type": "delivery",
+      "region": "Yakkasaroy",
+      "lat": 41.2840,
+      "lng": 69.2570,
+      "weight_kg": 3.0,
+      "created_at": "2026-11-20T10:00:00+05:00"
+    }
+  ]
+}
