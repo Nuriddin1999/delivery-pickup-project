@@ -89,6 +89,20 @@ export function startIcon(color: string, name: string) {
   });
 }
 
+/** Rings that grow and fade around a point, in the given colour. */
+export function pulseIcon(color: string) {
+  return L.divIcon({
+    ...iconBase,
+    html: `<div class="relative size-14" style="--c:${color}">
+      <span class="absolute inset-0 animate-ping rounded-full bg-(--c) opacity-50"></span>
+      <span class="absolute inset-0 animate-ping rounded-full border-4 border-(--c) [animation-delay:500ms]"></span>
+      <span class="absolute inset-4.5 rounded-full border-3 border-white bg-(--c) shadow-[0_0_0_3px_rgba(0,0,0,0.25)]"></span>
+    </div>`,
+    iconSize: [56, 56],
+    iconAnchor: [28, 28],
+  });
+}
+
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 }

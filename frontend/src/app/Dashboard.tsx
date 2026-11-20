@@ -5,6 +5,7 @@ import { emptyStart, readStart, startFromPoint, type StartFields } from "@/domai
 import { AutoAssignReport } from "@/features/auto-assign/AutoAssignReport";
 import { MapView } from "@/features/map/MapView";
 import type { MapMode } from "@/features/map/mapStyles";
+import { usePointHighlight } from "@/features/map/usePointHighlight";
 import { RegionEditor } from "@/features/regions/RegionEditor";
 import { useAutoAssign } from "@/hooks/useAutoAssign";
 import { useRegionEditor } from "@/hooks/useRegionEditor";
@@ -28,6 +29,7 @@ export function Dashboard({ state, shapes, loadError, refresh }: Props) {
   const { toast, showToast } = useToast();
   const regions = useRegionEditor(state.couriers, refresh);
   const autoAssign = useAutoAssign(refresh, showToast);
+  const pointHighlight = usePointHighlight();
   const [showShorter, setShowShorter] = useState(false);
   const [newStart, setNewStart] = useState<StartFields>(emptyStart);
   const colors = useMemo(() => courierColors(state.couriers), [state.couriers]);
@@ -61,6 +63,7 @@ export function Dashboard({ state, shapes, loadError, refresh }: Props) {
             onSelectOrder={route.selectOrder}
             route={focused ? { route: showShorter ? focused.better_route : focused.route, color: colors[focused.id] } : null}
             startPreview={isAdding ? readStart(newStart) : null}
+            highlight={pointHighlight.highlight}
           />
         </section>
 
@@ -76,6 +79,7 @@ export function Dashboard({ state, shapes, loadError, refresh }: Props) {
               onShowShorter={setShowShorter}
               newStart={newStart}
               onNewStartChange={setNewStart}
+              onShowPoint={pointHighlight.show}
               onOrderChanged={async (message) => {
                 showToast(message);
                 await refresh();

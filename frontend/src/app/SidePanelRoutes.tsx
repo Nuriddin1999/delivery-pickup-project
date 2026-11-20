@@ -3,6 +3,7 @@ import type { Courier, DispatchState } from "@/api/types";
 import type { StartFields } from "@/domain/courierForm";
 import { AddCourierForm } from "@/features/add-courier/AddCourierForm";
 import { CourierPanel } from "@/features/couriers/CourierPanel";
+import type { ShowPoint } from "@/features/map/usePointHighlight";
 import { OrdersPanel } from "@/features/orders/OrdersPanel";
 import { paths, patterns } from "./routes";
 import type { useAppRoute } from "./useAppRoute";
@@ -17,6 +18,7 @@ interface Props {
   onNewStartChange: (s: StartFields) => void;
   onOrderChanged: (message: string) => void;
   onCourierCreated: (c: Courier) => void;
+  onShowPoint: ShowPoint;
 }
 
 /** Which panel the side bar shows for each page address. */
@@ -30,6 +32,7 @@ export function SidePanelRoutes(p: Props) {
       onFocus={p.route.focusCourier}
       onShowShorter={p.onShowShorter}
       onSelectOrder={p.route.selectOrder}
+      onShowPoint={p.onShowPoint}
     />
   );
   const orders = <OrdersPanel state={p.state} colors={p.colors} selectedId={p.route.selectedOrderId} onSelect={p.route.selectOrder} onChanged={p.onOrderChanged} />;

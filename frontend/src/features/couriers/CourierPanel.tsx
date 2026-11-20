@@ -1,4 +1,5 @@
 import type { DispatchState } from "@/api/types";
+import type { ShowPoint } from "@/features/map/usePointHighlight";
 import { Checkbox } from "@/shared/ui/Checkbox";
 import { CourierCard } from "./CourierCard";
 import { UnassignableList } from "./UnassignableList";
@@ -11,10 +12,11 @@ interface Props {
   onFocus: (id: string | null) => void;
   onShowShorter: (v: boolean) => void;
   onSelectOrder: (id: string) => void;
+  onShowPoint?: ShowPoint;
 }
 
 /** Every courier with load, stops and km, then the orders nobody can take. */
-export function CourierPanel({ state, colors, focusedId, showShorter, onFocus, onShowShorter, onSelectOrder }: Props) {
+export function CourierPanel({ state, colors, focusedId, showShorter, onFocus, onShowShorter, onSelectOrder, onShowPoint }: Props) {
   return (
     <div className="flex flex-col gap-2.5">
       <Checkbox checked={showShorter} onChange={onShowShorter}>
@@ -30,6 +32,7 @@ export function CourierPanel({ state, colors, focusedId, showShorter, onFocus, o
           showShorter={showShorter}
           onToggleFocus={() => onFocus(focusedId === c.id ? null : c.id)}
           onSelectOrder={onSelectOrder}
+          onShowPoint={onShowPoint}
         />
       ))}
 

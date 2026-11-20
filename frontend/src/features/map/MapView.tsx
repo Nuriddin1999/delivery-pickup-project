@@ -5,6 +5,8 @@ import { cn } from "@/shared/ui/styles";
 import { hubIcon, mapModeClass, newStartIcon, regionStyle, startIcon, type MapMode } from "./mapStyles";
 import { MapClickCatcher } from "./MapClickCatcher";
 import { OrderMarker } from "./OrderMarker";
+import { PulseMarker } from "./PulseMarker";
+import type { PointHighlight } from "./usePointHighlight";
 import { RegionsLayer } from "./RegionsLayer";
 
 interface Props {
@@ -22,6 +24,8 @@ interface Props {
   onSelectOrder: (id: string) => void;
   route: { route: Route; color: string } | null;
   startPreview: Point | null;
+  /** a point to pulse and fly to, e.g. a courier's start */
+  highlight?: PointHighlight | null;
 }
 
 export function MapView(props: Props) {
@@ -82,6 +86,8 @@ export function MapView(props: Props) {
           </Tooltip>
         </Marker>
       )}
+
+      {props.highlight && <PulseMarker key={props.highlight.id} highlight={props.highlight} />}
     </MapContainer>
   );
 }

@@ -1,4 +1,5 @@
 import type { CourierView } from "@/api/types";
+import type { ShowPoint } from "@/features/map/usePointHighlight";
 import { formatKg, kindLabel } from "@/domain/format";
 import { Alert } from "@/shared/ui/Alert";
 import { Card } from "@/shared/ui/Card";
@@ -16,11 +17,13 @@ interface Props {
   showShorter: boolean;
   onToggleFocus: () => void;
   onSelectOrder: (id: string) => void;
+  onShowPoint?: ShowPoint;
 }
 
 /** One courier: kinds, regions, load against limits, stops and km. */
-export function CourierCard({ courier: c, color, focused, showShorter, onToggleFocus, onSelectOrder }: Props) {
+export function CourierCard({ courier: c, color, focused, showShorter, onToggleFocus, onSelectOrder, onShowPoint }: Props) {
   const route = showShorter ? c.better_route : c.route;
+  const showStart = onShowPoint && (() => onShowPoint(c.start, color, `${c.name} starts here`));
 
   return (
     <Card className={cn("border-l-[5px]", focused && "ring-2 ring-blue-200", !c.active && "opacity-70")} style={{ borderLeftColor: color }}>
@@ -45,7 +48,7 @@ export function CourierCard({ courier: c, color, focused, showShorter, onToggleF
         </Alert>
       )}
 
-      <RouteStops route={route} outside={c.outside_regions} onSelectOrder={onSelectOrder} />
+      <RouteStops route={route} outside={c.outside_regions} onSelectOrder={onSelectOrder} onShowStart={showStart} />
       <RouteTotal shown={route} given={c.route} shorter={c.better_route} />
     </Card>
   );
