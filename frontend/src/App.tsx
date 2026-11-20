@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { api, ApiError } from "./api";
 import { courierColors, formPoint, sameSet } from "./logic";
 import type { MapMode } from "./mapStyles";
+import { paths, patterns } from "./paths";
 import type { AutoResult, Point, State } from "./types";
 import { btn, btnPrimary, cn, muted } from "./ui";
 import { MapView } from "./components/MapView";
@@ -14,23 +16,30 @@ import { Legend } from "./components/Legend";
 
 type Tab = "couriers" | "orders" | "add";
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: "couriers", label: "Couriers" },
-  { id: "orders", label: "Orders" },
-  { id: "add", label: "Add courier" },
+const tabs: { id: Tab; label: string; to: string }[] = [
+  { id: "couriers", label: "Couriers", to: paths.couriers },
+  { id: "orders", label: "Orders", to: paths.orders },
+  { id: "add", label: "Add courier", to: paths.newCourier },
 ];
 
 const toastClass = "fixed left-1/2 z-2000 -translate-x-1/2 rounded-lg px-4.5 py-2.5 text-white shadow-[0_4px_12px_rgba(0,0,0,0.3)]";
 
 export default function App() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // What is selected comes from the address, so every view has its own link.
+  const isAdd = useMatch(patterns.newCourier) !== null;
+  const orderMatch = useMatch(patterns.order);
+  const courierMatch = useMatch(patterns.courier);
+  const tab: Tab = isAdd ? "add" : pathname.startsWith(paths.orders) ? "orders" : "couriers";
+  const selectedOrderId = orderMatch?.params.orderId ?? null;
+  const focusCourierId = !isAdd ? (courierMatch?.params.courierId ?? null) : null;
+
   const [state, setState] = useState<State | null>(null);
   const [shapes, setShapes] = useState<GeoJSON.FeatureCollection | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("couriers");
   const [toast, setToast] = useState<string | null>(null);
-
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [focusCourierId, setFocusCourierId] = useState<string | null>(null);
   const [showBetter, setShowBetter] = useState(false);
 
   // region editing
@@ -86,13 +95,19 @@ export default function App() {
   const regionsDirty = !!regionCourier && !!draftRegions && !sameSet(regionCourier.regions, draftRegions);
   const mode: MapMode = tab === "add" ? "pickStart" : regionCourier ? "regions" : "none";
 
-  const pickRegionCourier = (id: string) => {
-    if (regionsDirty && !confirm(`Drop the unsaved region changes for ${regionCourier!.name}?`)) return;
+  const startEditingRegions = (id: string) => {
     setRegionCourierId(id);
     setRegionMsg(null);
     const c = state.couriers.find((x) => x.id === id);
     setDraftRegions(c ? [...c.regions] : null);
-    if (c) setFocusCourierId(c.id);
+    return c;
+  };
+
+  const pickRegionCourier = (id: string) => {
+    if (regionsDirty && !confirm(`Drop the unsaved region changes for ${regionCourier!.name}?`)) return;
+    const c = startEditingRegions(id);
+    // On the couriers tab, also show that courier's route.
+    if (c && tab === "couriers") navigate(paths.courier(c.id));
   };
 
   const toggleRegion = (name: string) => {
@@ -116,10 +131,8 @@ export default function App() {
     }
   };
 
-  const selectOrder = (id: string | null) => {
-    setSelectedOrderId(id);
-    if (id) setTab("orders");
-  };
+  const selectOrder = (id: string | null) => navigate(id ? paths.order(id) : paths.orders);
+  const focusCourier = (id: string | null) => navigate(id ? paths.courier(id) : paths.couriers);
 
   const runAutoAssign = async () => {
     setAutoBusy(true);
@@ -137,6 +150,22 @@ export default function App() {
   const focused = state.couriers.find((c) => c.id === focusCourierId);
   const route = focused ? { route: showBetter ? focused.better_route : focused.route, color: colors[focused.id] } : null;
   const free = state.orders.filter((o) => !o.courier_id).length;
+
+  const courierPanel = (
+    <CourierPanel state={state} colors={colors} focusId={focusCourierId} showBetter={showBetter} onFocus={focusCourier} onShowBetter={setShowBetter} onSelectOrder={selectOrder} />
+  );
+  const ordersPanel = (
+    <OrdersPanel
+      state={state}
+      colors={colors}
+      selectedId={selectedOrderId}
+      onSelect={selectOrder}
+      onChanged={async (msg) => {
+        setToast(msg);
+        await refresh();
+      }}
+    />
+  );
 
   return (
     <div className="flex h-screen flex-col">
@@ -186,49 +215,43 @@ export default function App() {
         <aside className="flex w-110 flex-col border-l border-slate-200 bg-white max-[900px]:w-full max-[900px]:border-l-0">
           <nav className="flex border-b border-slate-200">
             {tabs.map((t) => (
-              <button
+              <Link
                 key={t.id}
-                className={cn("flex-1 cursor-pointer border-b-3 p-2.5", tab === t.id ? "border-blue-600 font-semibold" : "border-transparent hover:bg-slate-50")}
-                onClick={() => setTab(t.id)}
+                to={t.to}
+                className={cn("flex-1 border-b-3 p-2.5 text-center", tab === t.id ? "border-blue-600 font-semibold" : "border-transparent hover:bg-slate-50")}
               >
                 {t.label}
-              </button>
+              </Link>
             ))}
           </nav>
 
           <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto p-3">
             {autoResult && <AutoAssignReport result={autoResult} state={state} onClose={() => setAutoResult(null)} onSelectOrder={selectOrder} />}
-            {tab === "couriers" && (
-              <CourierPanel state={state} colors={colors} focusId={focusCourierId} showBetter={showBetter} onFocus={setFocusCourierId} onShowBetter={setShowBetter} onSelectOrder={selectOrder} />
-            )}
-            {tab === "orders" && (
-              <OrdersPanel
-                state={state}
-                colors={colors}
-                selectedId={selectedOrderId}
-                onSelect={selectOrder}
-                onChanged={async (msg) => {
-                  setToast(msg);
-                  await refresh();
-                }}
+            <Routes>
+              <Route path="/" element={<Navigate to={paths.couriers} replace />} />
+              <Route path={patterns.couriers} element={courierPanel} />
+              <Route
+                path={patterns.newCourier}
+                element={
+                  <AddCourierForm
+                    takenNames={state.couriers.map((c) => c.name)}
+                    start={newStart}
+                    onStartChange={setNewStart}
+                    onCreated={async (c) => {
+                      setToast(`${c.name} added. Now choose their regions on the map.`);
+                      await refresh();
+                      startEditingRegions(c.id);
+                      setDraftRegions([...c.regions]);
+                      navigate(paths.courier(c.id));
+                    }}
+                  />
+                }
               />
-            )}
-            {tab === "add" && (
-              <AddCourierForm
-                takenNames={state.couriers.map((c) => c.name)}
-                start={newStart}
-                onStartChange={setNewStart}
-                onCreated={async (c) => {
-                  setToast(`${c.name} added. Now choose their regions on the map.`);
-                  await refresh();
-                  setTab("couriers");
-                  setRegionCourierId(c.id);
-                  setDraftRegions([...c.regions]);
-                  setFocusCourierId(c.id);
-                  setRegionMsg(null);
-                }}
-              />
-            )}
+              <Route path={patterns.courier} element={courierPanel} />
+              <Route path={patterns.orders} element={ordersPanel} />
+              <Route path={patterns.order} element={ordersPanel} />
+              <Route path="*" element={<Navigate to={paths.couriers} replace />} />
+            </Routes>
           </div>
         </aside>
       </main>

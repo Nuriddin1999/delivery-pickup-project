@@ -3,7 +3,7 @@
 A dispatcher's tool for one hub in Tashkent. The page shows a map of regions, orders and couriers. On it the dispatcher chooses each courier's regions, adds couriers and hands out orders. A Go server stores the data and checks every rule.
 
 - **Backend:** Go 1.23+, standard library only (`net/http`, `encoding/json`). Data lives in memory and is reloaded from `data/` on every start.
-- **Frontend:** React 19 + TypeScript (Vite), Tailwind CSS v4, Leaflet with OpenStreetMap tiles.
+- **Frontend:** React 19 + TypeScript (Vite), React Router 7, Tailwind CSS v4, Leaflet with OpenStreetMap tiles.
 - The task text is in [docs/TASK.md](docs/TASK.md).
 
 ## How to run
@@ -26,6 +26,20 @@ Tests:
 ```sh
 cd backend && go test ./...
 ```
+
+## Page addresses
+
+Each view of the page has its own link, so it can be shared, reloaded or reached with the browser's back button:
+
+| Address | What it shows |
+| --- | --- |
+| `/couriers` | courier panel (`/` and unknown addresses redirect here) |
+| `/couriers/c1` | courier panel, with that courier's route drawn on the map |
+| `/couriers/new` | the add-courier form; clicks on the map set the start point |
+| `/orders` | order list |
+| `/orders/o12` | order list with that order selected, ready to assign |
+
+The Go server sends the page for any address that is not a file or `/api/...`, so these links also work after a reload in the Docker build.
 
 ## API
 
@@ -148,6 +162,7 @@ frontend/src/
   logic.ts                colours, formatting, form checks (comfort only)
   ui.ts                   shared Tailwind class strings (buttons, cards, tags)
   mapStyles.ts            region styles and map pins (Leaflet divIcons with Tailwind classes)
+  paths.ts                page addresses and route patterns (React Router)
   components/             one component per file: MapView, RegionsLayer, MapClickCatcher,
                           RegionEditor, OrdersPanel, AssignBox, CourierPanel, CourierCard,
                           LoadMeter, RouteStops, AddCourierForm, FormField, AutoAssignReport, Legend
