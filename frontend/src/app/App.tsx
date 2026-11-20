@@ -7,5 +7,5 @@ export default function App() {
   const { state, shapes, loadError, refresh } = useDispatchState();
 
   if (!state) return <LoadingScreen error={loadError} onRetry={refresh} />;
-  return <Dashboard state={state} shapes={shapes} loadError={loadError} refresh={refresh} />;
+  return <Dashboard state={state} shapes={shapes} loadError={loadError} />;
 }

@@ -7,8 +7,8 @@ import { MapView } from "@/features/map/MapView";
 import type { MapMode } from "@/features/map/mapStyles";
 import { usePointHighlight } from "@/features/map/usePointHighlight";
 import { RegionEditor } from "@/features/regions/RegionEditor";
-import { useAutoAssign } from "@/hooks/useAutoAssign";
-import { useRegionEditor } from "@/hooks/useRegionEditor";
+import { useRegionEditor } from "@/features/regions/useRegionEditor";
+import { useAutoAssign } from "@/features/auto-assign/useAutoAssign";
 import { useToast } from "@/hooks/useToast";
 import { Toast } from "@/shared/ui/Toast";
 import { Header } from "./Header";
@@ -20,15 +20,14 @@ interface Props {
   state: DispatchState;
   shapes: GeoJSON.FeatureCollection | null;
   loadError: string | null;
-  refresh: () => Promise<void>;
 }
 
 /** The page layout: header, map with its region toolbar, and the side panel. */
-export function Dashboard({ state, shapes, loadError, refresh }: Props) {
+export function Dashboard({ state, shapes, loadError }: Props) {
   const route = useAppRoute();
   const { toast, showToast } = useToast();
-  const regions = useRegionEditor(state.couriers, refresh);
-  const autoAssign = useAutoAssign(refresh, showToast);
+  const regions = useRegionEditor(state.couriers);
+  const autoAssign = useAutoAssign(showToast);
   const pointHighlight = usePointHighlight();
   const [showShorter, setShowShorter] = useState(false);
   const [newStart, setNewStart] = useState<StartFields>(emptyStart);
@@ -80,13 +79,9 @@ export function Dashboard({ state, shapes, loadError, refresh }: Props) {
               newStart={newStart}
               onNewStartChange={setNewStart}
               onShowPoint={pointHighlight.show}
-              onOrderChanged={async (message) => {
-                showToast(message);
-                await refresh();
-              }}
-              onCourierCreated={async (c) => {
+              onOrderChanged={showToast}
+              onCourierCreated={(c) => {
                 showToast(`${c.name} added. Now choose their regions on the map.`);
-                await refresh();
                 regions.edit(c.id, c.regions);
                 route.focusCourier(c.id);
               }}

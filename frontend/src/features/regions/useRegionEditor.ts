@@ -3,6 +3,7 @@ import { errorMessage } from "@/api/client";
 import { dispatchApi } from "@/api/dispatchApi";
 import type { CourierView } from "@/api/types";
 import { sameRegions, toggleRegion } from "@/domain/regions";
+import { useStateMutation } from "@/hooks/useStateMutation";
 
 export interface RegionMessage {
   ok: boolean;
@@ -13,11 +14,11 @@ export interface RegionMessage {
  * Editing one courier's regions: a draft the dispatcher changes by clicking
  * the map, saved to the server in one step.
  */
-export function useRegionEditor(couriers: CourierView[], refresh: () => Promise<void>) {
+export function useRegionEditor(couriers: CourierView[]) {
   const [courierId, setCourierId] = useState("");
   const [draft, setDraft] = useState<string[] | null>(null);
-  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<RegionMessage | null>(null);
+  const saveMutation = useStateMutation((v: { id: string; regions: string[] }) => dispatchApi.setRegions(v.id, v.regions));
 
   const courier = couriers.find((c) => c.id === courierId);
   const dirty = !!courier && !!draft && !sameRegions(courier.regions, draft);
@@ -45,22 +46,21 @@ export function useRegionEditor(couriers: CourierView[], refresh: () => Promise<
 
   const reset = () => courier && setDraft([...courier.regions]);
 
-  const save = async () => {
+  const save = () => {
     if (!courier || !draft) return;
-    setSaving(true);
-    try {
-      const saved = await dispatchApi.setRegions(courier.id, draft);
-      setDraft(saved.regions);
-      setMessage({ ok: true, text: `Saved: ${saved.name} works in ${saved.regions.join(", ") || "no regions"}` });
-      await refresh();
-    } catch (err) {
-      setMessage({ ok: false, text: errorMessage(err) });
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate(
+      { id: courier.id, regions: draft },
+      {
+        onSuccess: (saved) => {
+          setDraft(saved.regions);
+          setMessage({ ok: true, text: `Saved: ${saved.name} works in ${saved.regions.join(", ") || "no regions"}` });
+        },
+        onError: (err) => setMessage({ ok: false, text: errorMessage(err) }),
+      },
+    );
   };
 
-  return { courierId, courier, draft, dirty, saving, message, edit, pick, toggle, reset, save };
+  return { courierId, courier, draft, dirty, saving: saveMutation.isPending, message, edit, pick, toggle, reset, save };
 }
 
 export type RegionEditor = ReturnType<typeof useRegionEditor>;

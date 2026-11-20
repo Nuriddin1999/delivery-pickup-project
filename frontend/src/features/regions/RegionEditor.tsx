@@ -1,5 +1,5 @@
 import type { CourierView } from "@/api/types";
-import type { RegionEditor as Editor } from "@/hooks/useRegionEditor";
+import type { RegionEditor as Editor } from "./useRegionEditor";
 import { Button } from "@/shared/ui/Button";
 import { Swatch } from "@/shared/ui/Swatch";
 import { errorText, hintText, inputClass, okText } from "@/shared/ui/styles";

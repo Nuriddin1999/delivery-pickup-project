@@ -45,10 +45,7 @@ export function MapView(props: Props) {
       {props.shapes && <RegionsLayer shapes={props.shapes} style={(name) => regionStyle(name, mode, props.draftRegions, props.draftColor)} onClick={onRegionClick} />}
 
       {props.route && props.route.route.stops.length > 1 && (
-        <Polyline
-          positions={props.route.route.stops.map((s) => [s.point.lat, s.point.lng] as [number, number])}
-          pathOptions={{ color: props.route.color, weight: 4, opacity: 0.8, dashArray: "8 6" }}
-        />
+        <Polyline positions={props.route.route.stops.map((s) => [s.point.lat, s.point.lng] as [number, number])} pathOptions={{ color: props.route.color, weight: 4, opacity: 0.8, dashArray: "8 6" }} />
       )}
 
       <Marker position={[state.hub.lat, state.hub.lng]} icon={hubIcon} zIndexOffset={1000}>
@@ -67,16 +64,7 @@ export function MapView(props: Props) {
 
       {state.orders.map((o) => {
         const courier = o.courier_id ? couriersById[o.courier_id] : undefined;
-        return (
-          <OrderMarker
-            key={o.id}
-            order={o}
-            courier={courier}
-            color={courier ? colors[courier.id] : null}
-            selected={o.id === props.selectedOrderId}
-            onSelect={() => props.onSelectOrder(o.id)}
-          />
-        );
+        return <OrderMarker key={o.id} order={o} courier={courier} color={courier ? colors[courier.id] : null} selected={o.id === props.selectedOrderId} onSelect={() => props.onSelectOrder(o.id)} />;
       })}
 
       {props.startPreview && (

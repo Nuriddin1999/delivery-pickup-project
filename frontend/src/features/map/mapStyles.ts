@@ -13,8 +13,7 @@ export const mapModeClass: Record<MapMode, string> = {
 };
 
 /** Region name tooltips, overriding Leaflet's tooltip box and arrow. */
-export const regionLabelClass =
-  "rounded-[10px]! border! border-slate-300! bg-white/90! px-1.75! py-px! text-xs! font-bold! text-slate-800! shadow-none! before:hidden!";
+export const regionLabelClass = "rounded-[10px]! border! border-slate-300! bg-white/90! px-1.75! py-px! text-xs! font-bold! text-slate-800! shadow-none! before:hidden!";
 
 export function regionStyle(name: string, mode: MapMode, draft: string[] | null, color: string): L.PathOptions {
   if (mode === "regions" && draft) {

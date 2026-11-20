@@ -1,58 +1,63 @@
-import { useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ApiError, errorMessage } from "@/api/client";
 import { dispatchApi } from "@/api/dispatchApi";
-import type { Courier } from "@/api/types";
-import { checkCourierForm, emptyCourierForm, emptyStart, type CourierFormFields, type FormErrors, type StartFields } from "@/domain/courierForm";
+import type { Courier, NewCourierInput } from "@/api/types";
+import { courierFormSchema, emptyCourierForm, emptyStart, serverFieldToFormField, type CourierFormValues, type StartFields } from "@/domain/courierForm";
+import { useStateMutation } from "@/hooks/useStateMutation";
 
 /**
- * State of the add-courier form. Errors appear after the first submit and
- * then update as the dispatcher types. The server checks everything again;
- * its field errors are shown the same way.
+ * The add-courier form on React Hook Form + zod. Errors appear after the
+ * first submit and then update while typing. The start point is shared with
+ * the map: a map click fills lat/lng, typing moves the preview pin. The
+ * server checks everything again; its field errors land on the same fields.
  */
 export function useCourierForm(start: StartFields, onStartChange: (s: StartFields) => void, takenNames: string[], onCreated: (c: Courier) => void) {
-  const [fields, setFields] = useState<CourierFormFields>(emptyCourierForm);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const schema = useMemo(() => courierFormSchema(takenNames), [takenNames]);
+  const form = useForm<CourierFormValues, unknown, NewCourierInput>({
+    resolver: zodResolver(schema),
+    defaultValues: { ...emptyCourierForm, ...start },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const mutation = useStateMutation(dispatchApi.addCourier);
+  const { setValue, getValues, watch, formState } = form;
 
-  const recheck = (f: CourierFormFields, s: StartFields) => {
-    if (submitted) setErrors(checkCourierForm(f, s, takenNames).errors);
+  // Map click → form fields.
+  useEffect(() => {
+    if (getValues("lat") !== start.lat) setValue("lat", start.lat, { shouldValidate: formState.isSubmitted });
+    if (getValues("lng") !== start.lng) setValue("lng", start.lng, { shouldValidate: formState.isSubmitted });
+  }, [start.lat, start.lng, getValues, setValue, formState.isSubmitted]);
+
+  // Typed lat/lng → preview pin on the map.
+  const [lat, lng] = watch(["lat", "lng"]);
+  useEffect(() => {
+    if (lat !== start.lat || lng !== start.lng) onStartChange({ lat, lng });
+  }, [lat, lng]); // eslint-disable-line react-hooks/exhaustive-deps -- only react to typing
+
+  const submit = form.handleSubmit((input) =>
+    mutation.mutate(input, {
+      onSuccess: (courier) => {
+        form.reset(emptyCourierForm);
+        onStartChange(emptyStart);
+        onCreated(courier);
+      },
+      onError: (err) => {
+        if (!(err instanceof ApiError)) return;
+        for (const [field, message] of Object.entries(err.fields)) {
+          const target = serverFieldToFormField[field];
+          if (target) form.setError(target, { message });
+        }
+      },
+    }),
+  );
+
+  return {
+    register: form.register,
+    errors: formState.errors,
+    serverError: mutation.error ? errorMessage(mutation.error) : null,
+    busy: mutation.isPending,
+    submit,
   };
-
-  const setField = <K extends keyof CourierFormFields>(key: K, value: CourierFormFields[K]) => {
-    const next = { ...fields, [key]: value };
-    setFields(next);
-    recheck(next, start);
-  };
-
-  const setStart = (patch: Partial<StartFields>) => {
-    const next = { ...start, ...patch };
-    onStartChange(next);
-    recheck(fields, next);
-  };
-
-  const submit = async () => {
-    setSubmitted(true);
-    setServerError(null);
-    const { errors, input } = checkCourierForm(fields, start, takenNames);
-    setErrors(errors);
-    if (!input) return;
-
-    setBusy(true);
-    try {
-      const courier = await dispatchApi.addCourier(input);
-      setFields(emptyCourierForm);
-      onStartChange(emptyStart);
-      setSubmitted(false);
-      onCreated(courier);
-    } catch (err) {
-      if (err instanceof ApiError) setErrors(err.fields);
-      setServerError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return { fields, errors, serverError, busy, setField, setStart, submit };
 }

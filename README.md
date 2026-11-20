@@ -3,7 +3,7 @@
 A dispatcher's tool for one hub in Tashkent. The page shows a map of regions, orders and couriers. On it the dispatcher chooses each courier's regions, adds couriers and hands out orders. A Go server stores the data and checks every rule.
 
 - **Backend:** Go 1.24+, standard library only (`net/http`, `encoding/json`). Data lives in memory and is reloaded from `data/` on every start.
-- **Frontend:** React 19 + TypeScript (Vite), React Router 7, Tailwind CSS v4, Leaflet with OpenStreetMap tiles.
+- **Frontend:** React 19 + TypeScript (Vite), React Router 7, TanStack Query 5 (server data), React Hook Form + zod (add-courier form), Tailwind CSS v4, Leaflet with OpenStreetMap tiles.
 - The task text is in [docs/TASK.md](docs/TASK.md).
 
 ## How to run
@@ -215,20 +215,20 @@ frontend/src/
   api/                      client.ts (fetch + ApiError), dispatchApi.ts (endpoints), types.ts (JSON shapes)
   config/env.ts             VITE_* settings from .env
   domain/                   pure logic, no React: formatting, form checks, rule hints, colours
-  hooks/                    shared state: useDispatchState, useRegionEditor, useAutoAssign, useToast
+  hooks/                    shared: useDispatchState (TanStack Query), useStateMutation (change + reload), useToast
   features/                 one folder per part of the page, one component per file
     map/                    MapView, RegionsLayer, OrderMarker, MapClickCatcher, Legend, mapStyles.ts
-    regions/                RegionEditor, RegionChip
+    regions/                RegionEditor, RegionChip, useRegionEditor
     couriers/               CourierPanel, CourierCard, LoadMeter, RouteStops, StopLabel, RouteTotal, UnassignableList
     orders/                 OrdersPanel, OrderFilters, OrderRow, OrderStatus, AssignBox, OrderDetails,
                             CourierPicker, useOrderActions
-    add-courier/            AddCourierForm, useCourierForm
-    auto-assign/            AutoAssignReport
+    add-courier/            AddCourierForm, useCourierForm (React Hook Form + zod schema from domain/courierForm.ts)
+    auto-assign/            AutoAssignReport, useAutoAssign
   shared/ui/                Button, Card, CardHeader, Tag, Alert, Toast, Swatch, Checkbox, FormField, styles.ts
 data/                       data.json, regions.geojson (seed)
 ```
 
-Imports use the `@/` alias for `src/`. Components only draw; state and server calls live in hooks; rules and formatting live in `domain/`.
+Imports use the `@/` alias for `src/`. Components only draw; state and server calls live in hooks; rules and formatting live in `domain/`. Server data is read with TanStack Query; every change is a mutation that reloads the state, so no component passes a refresh function around. A hook used by one feature lives in that feature; `hooks/` holds only shared ones.
 
 ## Time and AI use
 

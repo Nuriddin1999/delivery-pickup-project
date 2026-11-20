@@ -1,30 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { errorMessage } from "@/api/client";
 import { dispatchApi } from "@/api/dispatchApi";
-import type { DispatchState } from "@/api/types";
 
-/** Loads the dispatch state and region shapes; refresh() reloads the state. */
+/** Query key of the dispatch state; every change invalidates it. */
+export const stateKey = ["state"] as const;
+
+/** The dispatch state and the region shapes (loaded once). */
 export function useDispatchState() {
-  const [state, setState] = useState<DispatchState | null>(null);
-  const [shapes, setShapes] = useState<GeoJSON.FeatureCollection | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const state = useQuery({ queryKey: stateKey, queryFn: dispatchApi.state });
+  const shapes = useQuery({ queryKey: ["regionShapes"], queryFn: dispatchApi.regionShapes, staleTime: Infinity });
+  const error = state.error ?? shapes.error;
 
-  const refresh = useCallback(async () => {
-    try {
-      setState(await dispatchApi.state());
-      setLoadError(null);
-    } catch (err) {
-      setLoadError(errorMessage(err));
-    }
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    dispatchApi
-      .regionShapes()
-      .then(setShapes)
-      .catch(() => setLoadError("Could not load region shapes"));
-  }, [refresh]);
-
-  return { state, shapes, loadError, refresh };
+  return {
+    state: state.data ?? null,
+    shapes: shapes.data ?? null,
+    loadError: error ? errorMessage(error) : null,
+    refresh: () => void state.refetch(),
+  };
 }

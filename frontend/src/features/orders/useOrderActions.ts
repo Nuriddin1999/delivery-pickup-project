@@ -1,33 +1,22 @@
-import { useState } from "react";
 import { errorMessage } from "@/api/client";
 import { dispatchApi } from "@/api/dispatchApi";
+import { useStateMutation } from "@/hooks/useStateMutation";
 
 /**
  * Assign, move or take off one order. A refusal from the server is kept in
  * `error` as the server wrote it, e.g. "Kamola does not work in Bektemir".
  */
 export function useOrderActions(orderId: string, onDone: (message: string) => void) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // courierId null means "take off"
+  const mutation = useStateMutation((courierId: string | null) => (courierId ? dispatchApi.assign(orderId, courierId) : dispatchApi.unassign(orderId)));
 
-  const run = async (call: () => Promise<unknown>, message: string) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await call();
-      onDone(message);
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const run = (courierId: string | null, message: string) => mutation.mutate(courierId, { onSuccess: () => onDone(message) });
 
   return {
-    busy,
-    error,
-    clearError: () => setError(null),
-    assign: (courierId: string, message: string) => run(() => dispatchApi.assign(orderId, courierId), message),
-    unassign: (message: string) => run(() => dispatchApi.unassign(orderId), message),
+    busy: mutation.isPending,
+    error: mutation.error ? errorMessage(mutation.error) : null,
+    clearError: () => mutation.reset(),
+    assign: (courierId: string, message: string) => run(courierId, message),
+    unassign: (message: string) => run(null, message),
   };
 }
