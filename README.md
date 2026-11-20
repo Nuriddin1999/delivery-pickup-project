@@ -23,7 +23,7 @@ docker compose up --build
 Without Docker, using two terminals (needs Go ≥ 1.24 and Node ≥ 20):
 
 ```sh
-cd backend && go run .                    # API on SERVER_ADDR (:8080), loads DATA_FILE and REGIONS_FILE
+cd backend && go run ./cmd/server       # API on SERVER_ADDR (:8080), loads DATA_FILE and REGIONS_FILE
 cd frontend && npm install && npm run dev # page on http://localhost:5173, /api goes to API_PROXY_TARGET
 ```
 
@@ -96,7 +96,7 @@ All rules live in [backend/internal/domain/rules.go](backend/internal/domain/rul
 5. Parcel room is left, with pickups and deliveries counted together: `Kamola has no room: already 3 of 3 parcels today`
 6. Weight room is left: `Kamola cannot carry 6 kg more: already 12 of 15 kg today`
 
-The store holds one mutex around each change, so a check and the change it allows happen as one step.
+The use case layer ([usecase/dispatcher.go](backend/internal/usecase/dispatcher.go)) holds one lock around each change, so a check and the change it allows happen as one step.
 
 ## The seed data
 
@@ -130,7 +130,7 @@ Other things in the data:
 - **The route** is the courier's start point, then their pickups in the order given, then the hub, then their deliveries in the order given. A courier with only deliveries goes start → hub → deliveries. A courier with only pickups ends at the hub. A courier with no orders has no route (0 km). "Order given" means the time of assignment, so a moved order goes to the end of its new courier's list.
 - **Km** are straight-line (haversine) distances. Each leg is rounded to 0.01 km, and the total is the sum of the rounded legs, so the numbers on screen add up.
 - **Region change** replaces the whole list. Orders the courier already holds stay with them. Those outside the new regions get an orange ring on the map and an "outside" tag in the panel and lists. New orders in a dropped region are refused.
-- **New courier checks** (the same in the page and on the server, in [validate.go](backend/internal/domain/validate.go) and [logic.ts](frontend/src/logic.ts)):
+- **New courier checks** (the same in the page and on the server, in [courier_draft.go](backend/internal/domain/courier_draft.go) and [courierForm.ts](frontend/src/domain/courierForm.ts)):
   - Name is required, at most 50 characters, and must not match an existing name ignoring case. Refusal messages use names, so two Kamolas would make "Kamola does not work in Bektemir" ambiguous.
   - At least one kind of work.
   - `max_parcels` is a whole number from 1 to 100.
@@ -163,32 +163,72 @@ Other things in the data:
 
 `cd backend && go test ./...`
 
-- [domain/rules_test.go](backend/internal/domain/rules_test.go): each refusal (broken order, inactive courier, wrong kind, wrong region, parcel limit, weight limit), shared limit for pickups and deliveries, edge cases at the limit, and the "nobody can take it" reasons.
-- [domain/validate_test.go](backend/internal/domain/validate_test.go): every way a new courier is refused.
-- [domain/route_test.go](backend/internal/domain/route_test.go): stop order, leg sums, empty route, and a shorter order that is never worse.
-- [store/store_test.go](backend/internal/store/store_test.go): seed problems found, broken orders never assignable, a region change keeps orders and marks them, unknown regions refused, a refused courier is not stored, a move refused or done, and auto-assign respects every rule and keeps hand assignments.
-- [api/api_test.go](backend/internal/api/api_test.go): requests sent by hand over HTTP, including bad JSON, wrong types, unknown fields and unknown ids, with status codes and messages.
+- [domain/rules_test.go](backend/internal/domain/rules_test.go): each refusal (broken order, inactive courier, wrong kind, wrong region, parcel limit, weight limit), shared limit for pickups and deliveries, edge cases at the limit, the "nobody can take it" reasons, and how the nearest courier is chosen.
+- [domain/courier_draft_test.go](backend/internal/domain/courier_draft_test.go): every way a new courier is refused.
+- [domain/route_test.go](backend/internal/domain/route_test.go): stop order, assignment order, leg sums, empty route, and a shorter order that is never worse.
+- [usecase/dispatcher_test.go](backend/internal/usecase/dispatcher_test.go): on the real seed data, broken orders never assignable, a region change keeps orders and marks them, unknown regions refused, a refused courier is not stored, a move refused or done, and auto-assign respects every rule and keeps hand assignments.
+- [seed/seed_test.go](backend/internal/seed/seed_test.go): every broken seed order is found with its reason.
+- [repository/memory/memory_test.go](backend/internal/repository/memory/memory_test.go): stored data cannot be changed from outside; ids and sequence numbers.
+- [transport/httpapi/api_test.go](backend/internal/transport/httpapi/api_test.go): requests sent by hand over HTTP, including bad JSON, wrong types, unknown fields and unknown ids, with status codes and messages.
+- [config/config_test.go](backend/internal/config/config_test.go): reading `.env`, and flags winning over it.
 
-## Project layout
+## Architecture
+
+### Backend: clean architecture
+
+Dependencies point inwards only. The business rules know nothing about HTTP, JSON or storage, so each layer can be read, tested and replaced on its own.
+
+```
+          transport/httpapi  ──►  usecase  ──►  domain
+ cmd/server ─┤                      ▲
+          repository/memory ────────┘ (implements usecase.Repository)
+          seed            ─────────────────►  domain
+```
 
 ```
 backend/
-  main.go                 flags, load seed, start server
-  internal/domain/        types, rules, validation, routes (no I/O, easy to test)
-  internal/store/         in-memory data, seed checks, assign / regions / auto-assign, state view
-  internal/api/           HTTP handlers and error mapping
-frontend/src/
-  App.tsx                 page state and layout
-  api.ts, types.ts        server calls and JSON shapes
-  logic.ts                colours, formatting, form checks (comfort only)
-  ui.ts                   shared Tailwind class strings (buttons, cards, tags)
-  mapStyles.ts            region styles and map pins (Leaflet divIcons with Tailwind classes)
-  paths.ts                page addresses and route patterns (React Router)
-  components/             one component per file: MapView, RegionsLayer, MapClickCatcher,
-                          RegionEditor, OrdersPanel, AssignBox, CourierPanel, CourierCard,
-                          LoadMeter, RouteStops, AddCourierForm, FormField, AutoAssignReport, Legend
-data/                     data.json, regions.geojson (seed)
+  cmd/server/main.go        composition root: config → seed → repository → use cases → HTTP
+  internal/
+    domain/                 entities and rules, no I/O and no JSON
+      courier.go, order.go, kind.go, city.go, geo.go, load.go
+      rules.go              CanTake (every assignment rule), WhyNobodyCanTake
+      route.go              route in the order given; route_optimize.go the shorter order
+      nearest.go            how auto-assign picks the nearest courier
+      courier_draft.go      checks for a new courier
+      errors.go             Refusal (rule broken) and ValidationError (bad input)
+    usecase/                what the dispatcher can do; one lock makes check + change atomic
+      ports.go              Repository interface the use cases need
+      assign.go, couriers.go, auto_assign.go, overview.go
+    repository/memory/      in-memory Repository (returns copies)
+    seed/                   reads data.json / regions.geojson, marks broken orders
+    transport/httpapi/      router, handlers, request/response DTOs, error → status mapping
+    config/                 settings from .env, environment and flags
 ```
+
+### Frontend: layers and features
+
+```
+frontend/src/
+  main.tsx                  entry: router + App
+  app/                      App (loading), Dashboard (layout), Header, SideTabs,
+                            SidePanelRoutes, routes.ts (addresses), useAppRoute (address → selection)
+  api/                      client.ts (fetch + ApiError), dispatchApi.ts (endpoints), types.ts (JSON shapes)
+  config/env.ts             VITE_* settings from .env
+  domain/                   pure logic, no React: formatting, form checks, rule hints, colours
+  hooks/                    shared state: useDispatchState, useRegionEditor, useAutoAssign, useToast
+  features/                 one folder per part of the page, one component per file
+    map/                    MapView, RegionsLayer, OrderMarker, MapClickCatcher, Legend, mapStyles.ts
+    regions/                RegionEditor, RegionChip
+    couriers/               CourierPanel, CourierCard, LoadMeter, RouteStops, StopLabel, RouteTotal, UnassignableList
+    orders/                 OrdersPanel, OrderFilters, OrderRow, OrderStatus, AssignBox, OrderDetails,
+                            CourierPicker, useOrderActions
+    add-courier/            AddCourierForm, useCourierForm
+    auto-assign/            AutoAssignReport
+  shared/ui/                Button, Card, CardHeader, Tag, Alert, Toast, Swatch, Checkbox, FormField, styles.ts
+data/                       data.json, regions.geojson (seed)
+```
+
+Imports use the `@/` alias for `src/`. Components only draw; state and server calls live in hooks; rules and formatting live in `domain/`.
 
 ## Time and AI use
 
