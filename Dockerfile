@@ -14,7 +14,7 @@ RUN npm run build
 FROM golang:1.24-alpine AS api
 WORKDIR /src
 COPY backend/ ./
-RUN go test ./internal/domain/... ./internal/config/... && CGO_ENABLED=0 go build -o /server .
+RUN go test ./internal/domain/... ./internal/usecase/... ./internal/config/... && CGO_ENABLED=0 go build -o /server ./cmd/server
 
 FROM alpine:3.20
 WORKDIR /app

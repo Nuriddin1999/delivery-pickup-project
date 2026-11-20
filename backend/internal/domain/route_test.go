@@ -5,14 +5,13 @@ import (
 	"testing"
 )
 
-func at(id string, kind Kind, lat, lng float64) *Order {
-	return &Order{ID: id, Type: kind, Location: &Point{lat, lng}}
+func at(id string, kind Kind, lat, lng float64) Order {
+	return Order{ID: id, Type: kind, Location: &Point{lat, lng}}
 }
 
 func TestDistanceKm(t *testing.T) {
 	// One degree of latitude is about 111.2 km.
-	d := DistanceKm(Point{41, 69}, Point{42, 69})
-	if math.Abs(d-111.2) > 0.1 {
+	if d := DistanceKm(Point{41, 69}, Point{42, 69}); math.Abs(d-111.2) > 0.1 {
 		t.Fatalf("1 degree of latitude = %.2f km", d)
 	}
 	if DistanceKm(Point{41, 69}, Point{41, 69}) != 0 {
@@ -25,7 +24,7 @@ func TestBuildRouteOrder(t *testing.T) {
 	p1, p2 := at("p1", Pickup, 41.02, 69), at("p2", Pickup, 41.01, 69)
 	d1 := at("d1", Delivery, 41.2, 69)
 
-	r := BuildRoute(start, hub, []*Order{p1, p2}, []*Order{d1})
+	r := BuildRoute(start, hub, []Order{p1, p2}, []Order{d1})
 	want := []string{"start", "pickup:p1", "pickup:p2", "hub", "delivery:d1"}
 	if len(r.Stops) != len(want) {
 		t.Fatalf("got %d stops, want %d", len(r.Stops), len(want))
@@ -53,11 +52,25 @@ func TestBuildRouteOrder(t *testing.T) {
 	}
 }
 
+func TestPlanRouteUsesAssignOrder(t *testing.T) {
+	c := Courier{ID: "c1", Start: Point{41.0, 69.0}}
+	a, b := at("a", Pickup, 41.01, 69), at("b", Pickup, 41.02, 69)
+	a.AssignTo("c1", 2)
+	b.AssignTo("c1", 1)
+	other := at("x", Pickup, 41.05, 69)
+	other.AssignTo("c2", 3)
+
+	r := PlanRoute(c, Point{41.1, 69.0}, []Order{a, b, other})
+	if len(r.Stops) != 4 || r.Stops[1].OrderID != "b" || r.Stops[2].OrderID != "a" {
+		t.Errorf("stops = %+v, want start, b, a, hub", r.Stops)
+	}
+}
+
 func TestBuildRouteEmptyAndDeliveriesOnly(t *testing.T) {
 	if r := BuildRoute(Point{}, Point{}, nil, nil); len(r.Stops) != 0 || r.TotalKm != 0 {
 		t.Errorf("empty route: %+v", r)
 	}
-	r := BuildRoute(Point{41, 69}, Point{41.1, 69}, nil, []*Order{at("d", Delivery, 41.2, 69)})
+	r := BuildRoute(Point{41, 69}, Point{41.1, 69}, nil, []Order{at("d", Delivery, 41.2, 69)})
 	if len(r.Stops) != 3 || r.Stops[1].Kind != StopHub {
 		t.Errorf("deliveries only should go start -> hub -> delivery, got %+v", r.Stops)
 	}
@@ -66,8 +79,8 @@ func TestBuildRouteEmptyAndDeliveriesOnly(t *testing.T) {
 func TestOptimizeRouteNeverWorse(t *testing.T) {
 	start, hub := Point{41.0, 69.0}, Point{41.1, 69.0}
 	// Given in a zig-zag order on purpose.
-	p := []*Order{at("a", Pickup, 41.08, 69), at("b", Pickup, 41.02, 69), at("c", Pickup, 41.05, 69)}
-	d := []*Order{at("x", Delivery, 41.4, 69), at("y", Delivery, 41.2, 69), at("z", Delivery, 41.3, 69)}
+	p := []Order{at("a", Pickup, 41.08, 69), at("b", Pickup, 41.02, 69), at("c", Pickup, 41.05, 69)}
+	d := []Order{at("x", Delivery, 41.4, 69), at("y", Delivery, 41.2, 69), at("z", Delivery, 41.3, 69)}
 	given := BuildRoute(start, hub, p, d)
 	better := OptimizeRoute(start, hub, p, d)
 	if better.TotalKm >= given.TotalKm {

@@ -5,14 +5,14 @@ import (
 	"testing"
 )
 
-func kamola() *Courier {
-	return &Courier{ID: "c5", Name: "Kamola", Active: true,
+func kamola() Courier {
+	return Courier{ID: "c5", Name: "Kamola", Active: true,
 		Kinds: []Kind{Pickup, Delivery}, Regions: []string{"Sergeli", "Chilonzor"},
 		MaxParcels: 3, MaxKg: 15}
 }
 
-func order(kind Kind, region string, kg float64) *Order {
-	return &Order{ID: "o1", Type: kind, Region: region, WeightKg: kg, Location: &Point{41.3, 69.2}}
+func order(kind Kind, region string, kg float64) Order {
+	return Order{ID: "o1", Type: kind, Region: region, WeightKg: kg, Location: &Point{41.3, 69.2}}
 }
 
 func TestCanTake(t *testing.T) {
@@ -25,8 +25,8 @@ func TestCanTake(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		courier  *Courier
-		order    *Order
+		courier  Courier
+		order    Order
 		load     Load
 		wantCode string // "" means allowed
 		wantMsg  string
@@ -65,13 +65,13 @@ func TestCanTake(t *testing.T) {
 }
 
 func TestWhyNobodyCanTake(t *testing.T) {
-	sardor := &Courier{Name: "Sardor", Active: false, Kinds: []Kind{Pickup, Delivery}, Regions: []string{"Sergeli"}, MaxParcels: 8, MaxKg: 40}
-	bekzod := &Courier{Name: "Bekzod", Active: true, Kinds: []Kind{Delivery}, Regions: []string{"Yashnobod"}, MaxParcels: 5, MaxKg: 25}
-	all := []*Courier{kamola(), sardor, bekzod}
+	sardor := Courier{Name: "Sardor", Active: false, Kinds: []Kind{Pickup, Delivery}, Regions: []string{"Sergeli"}, MaxParcels: 8, MaxKg: 40}
+	bekzod := Courier{Name: "Bekzod", Active: true, Kinds: []Kind{Delivery}, Regions: []string{"Yashnobod"}, MaxParcels: 5, MaxKg: 25}
+	all := []Courier{kamola(), sardor, bekzod}
 
 	cases := []struct {
 		name  string
-		order *Order
+		order Order
 		want  string
 	}{
 		{"someone can", order(Delivery, "Sergeli", 1), ""},
@@ -88,8 +88,32 @@ func TestWhyNobodyCanTake(t *testing.T) {
 		})
 	}
 
-	onlyInactive := []*Courier{sardor}
-	if got := WhyNobodyCanTake(onlyInactive, order(Delivery, "Sergeli", 1)); !strings.Contains(got, "inactive: Sardor") {
+	if got := WhyNobodyCanTake([]Courier{sardor}, order(Delivery, "Sergeli", 1)); !strings.Contains(got, "inactive: Sardor") {
 		t.Errorf("inactive case: got %q", got)
+	}
+}
+
+func TestChooseNearest(t *testing.T) {
+	hub := Point{41.30, 69.28}
+	near := kamola()
+	near.ID, near.Name, near.Start = "near", "Near", Point{41.26, 69.22}
+	far := kamola()
+	far.ID, far.Name, far.Start = "far", "Far", Point{41.40, 69.40}
+	full := kamola()
+	full.ID, full.Name, full.MaxParcels = "full", "Full", 0
+
+	o := order(Pickup, "Sergeli", 1)
+	o.Location = &Point{41.25, 69.21}
+
+	choice, ok, fullMsgs := ChooseNearest(o, []Courier{far, full, near}, nil, hub)
+	if !ok || choice.Courier.ID != "near" {
+		t.Fatalf("got %+v ok=%v, want near", choice.Courier.ID, ok)
+	}
+	if len(fullMsgs) != 1 || !strings.Contains(fullMsgs[0], "Full has no room") {
+		t.Errorf("full = %v", fullMsgs)
+	}
+
+	if _, ok, _ := ChooseNearest(order(Pickup, "Bektemir", 1), []Courier{near}, nil, hub); ok {
+		t.Error("nobody works in Bektemir, expected no choice")
 	}
 }

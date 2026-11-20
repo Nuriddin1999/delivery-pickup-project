@@ -1,4 +1,4 @@
-package api
+package httpapi
 
 import (
 	"encoding/json"
@@ -8,7 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"delivery/internal/store"
+	"delivery/internal/repository/memory"
+	"delivery/internal/seed"
+	"delivery/internal/usecase"
 )
 
 // These tests send requests "by hand", the way curl would, to show the
@@ -16,12 +18,17 @@ import (
 
 func newServer(t *testing.T) *httptest.Server {
 	t.Helper()
-	s, err := store.LoadFiles(filepath.Join("..", "..", "..", "data", "data.json"),
-		filepath.Join("..", "..", "..", "data", "regions.geojson"))
+	dir := filepath.Join("..", "..", "..", "..", "data")
+	data, err := seed.Load(filepath.Join(dir, "data.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv := httptest.NewServer(Handler(s, ""))
+	shapes, err := seed.LoadShapes(filepath.Join(dir, "regions.geojson"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := usecase.NewDispatcher(data.City, memory.New(data.Couriers, data.Orders))
+	srv := httptest.NewServer(NewRouter(d, shapes, ""))
 	t.Cleanup(srv.Close)
 	return srv
 }
@@ -88,9 +95,7 @@ func TestAssignThenParcelLimitOverHTTP(t *testing.T) {
 
 func TestAddCourierRefusedOverHTTP(t *testing.T) {
 	srv := newServer(t)
-	cases := []struct {
-		name, body, field string
-	}{
+	cases := []struct{ name, body, field string }{
 		{"missing everything", `{}`, "name"},
 		{"fractional parcels", `{"name":"X","kinds":["pickup"],"max_parcels":2.5,"max_kg":10,"start":{"lat":41.3,"lng":69.2}}`, "max_parcels"},
 		{"string kg", `{"name":"X","kinds":["pickup"],"max_parcels":2,"max_kg":"10","start":{"lat":41.3,"lng":69.2}}`, "max_kg"},
@@ -123,8 +128,7 @@ func TestAddCourierAndRegionsOverHTTP(t *testing.T) {
 	if status != 201 || body["id"] != "c7" {
 		t.Fatalf("create: %d %v", status, body)
 	}
-	status, body = call(t, srv, "PUT", "/api/couriers/c7/regions", `{"regions":["Bektemir"]}`)
-	if status != 200 {
+	if status, body = call(t, srv, "PUT", "/api/couriers/c7/regions", `{"regions":["Bektemir"]}`); status != 200 {
 		t.Fatalf("regions: %d %v", status, body)
 	}
 	if status, body = call(t, srv, "PUT", "/api/orders/o12/courier", `{"courier_id":"c7"}`); status != 200 {
@@ -138,7 +142,26 @@ func TestAddCourierAndRegionsOverHTTP(t *testing.T) {
 	}
 }
 
-func TestUnassignAndAutoAssignOverHTTP(t *testing.T) {
+func TestStateShape(t *testing.T) {
+	srv := newServer(t)
+	status, state := call(t, srv, "GET", "/api/state", "")
+	if status != 200 {
+		t.Fatalf("status %d", status)
+	}
+	for _, key := range []string{"hub", "regions", "couriers", "orders", "unassignable"} {
+		if state[key] == nil {
+			t.Errorf("state has no %q", key)
+		}
+	}
+	c := state["couriers"].([]any)[0].(map[string]any)
+	for _, key := range []string{"id", "max_parcels", "start", "load", "route", "better_route", "outside_regions"} {
+		if _, ok := c[key]; !ok {
+			t.Errorf("courier has no %q", key)
+		}
+	}
+}
+
+func TestUnassignAutoAssignAndUnknownEndpoint(t *testing.T) {
 	srv := newServer(t)
 	if status, body := call(t, srv, "DELETE", "/api/orders/o01/courier", ""); status != 409 {
 		t.Errorf("unassign free order: %d %v", status, body)
