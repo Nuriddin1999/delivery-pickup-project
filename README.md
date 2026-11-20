@@ -3,7 +3,7 @@
 A dispatcher's tool for one hub in Tashkent. The page shows a map of regions, orders and couriers. On it the dispatcher chooses each courier's regions, adds couriers and hands out orders. A Go server stores the data and checks every rule.
 
 - **Backend:** Go 1.23+, standard library only (`net/http`, `encoding/json`). Data lives in memory and is reloaded from `data/` on every start.
-- **Frontend:** React 19 + TypeScript (Vite), Leaflet with OpenStreetMap tiles.
+- **Frontend:** React 19 + TypeScript (Vite), Tailwind CSS v4, Leaflet with OpenStreetMap tiles.
 - The task text is in [docs/TASK.md](docs/TASK.md).
 
 ## How to run
@@ -146,7 +146,11 @@ frontend/src/
   App.tsx                 page state and layout
   api.ts, types.ts        server calls and JSON shapes
   logic.ts                colours, formatting, form checks (comfort only)
-  components/             MapView, RegionEditor, OrdersPanel, CourierPanel, AddCourierForm
+  ui.ts                   shared Tailwind class strings (buttons, cards, tags)
+  mapStyles.ts            region styles and map pins (Leaflet divIcons with Tailwind classes)
+  components/             one component per file: MapView, RegionsLayer, MapClickCatcher,
+                          RegionEditor, OrdersPanel, AssignBox, CourierPanel, CourierCard,
+                          LoadMeter, RouteStops, AddCourierForm, FormField, AutoAssignReport, Legend
 data/                     data.json, regions.geojson (seed)
 ```
 
