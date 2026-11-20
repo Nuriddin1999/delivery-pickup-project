@@ -2,11 +2,17 @@
 
 A dispatcher's tool for one hub in Tashkent. The page shows a map of regions, orders and couriers. On it the dispatcher chooses each courier's regions, adds couriers and hands out orders. A Go server stores the data and checks every rule.
 
-- **Backend:** Go 1.23+, standard library only (`net/http`, `encoding/json`). Data lives in memory and is reloaded from `data/` on every start.
+- **Backend:** Go 1.24+, standard library only (`net/http`, `encoding/json`). Data lives in memory and is reloaded from `data/` on every start.
 - **Frontend:** React 19 + TypeScript (Vite), React Router 7, Tailwind CSS v4, Leaflet with OpenStreetMap tiles.
 - The task text is in [docs/TASK.md](docs/TASK.md).
 
 ## How to run
+
+First copy the settings template once (the server and the page both read `.env` from the repository root):
+
+```sh
+cp .env.example .env
+```
 
 With Docker (one command, then open http://localhost:8080):
 
@@ -14,12 +20,27 @@ With Docker (one command, then open http://localhost:8080):
 docker compose up --build
 ```
 
-Without Docker, using two terminals (needs Go ≥ 1.23 and Node ≥ 20):
+Without Docker, using two terminals (needs Go ≥ 1.24 and Node ≥ 20):
 
 ```sh
-cd backend && go run .                    # API on :8080, loads ../data/*
-cd frontend && npm install && npm run dev # page on http://localhost:5173, /api goes to :8080
+cd backend && go run .                    # API on SERVER_ADDR (:8080), loads DATA_FILE and REGIONS_FILE
+cd frontend && npm install && npm run dev # page on http://localhost:5173, /api goes to API_PROXY_TARGET
 ```
+
+## Settings (.env)
+
+All settings live in `.env` in the repository root; [.env.example](.env.example) is the committed template with every variable explained. `.env` itself is in `.gitignore`.
+
+| Variable | Used by | Meaning |
+| --- | --- | --- |
+| `SERVER_ADDR` | Go server | listen address, e.g. `:8080` |
+| `DATA_FILE`, `REGIONS_FILE` | Go server | seed files, relative to `backend/` |
+| `STATIC_DIR` | Go server | optional folder with the built page to serve |
+| `API_PROXY_TARGET` | Vite dev server | where `/api` is forwarded during `npm run dev` (not sent to the browser) |
+| `VITE_TILE_URL`, `VITE_TILE_ATTRIBUTION`, `VITE_MAP_ZOOM` | page | map tiles and starting zoom |
+| `APP_PORT` | docker compose | port on your machine |
+
+Order of precedence for the server: command-line flag (`-addr`, `-data`, `-geo`, `-static`), then a real environment variable, then `.env`. A missing required setting stops the server or the page with a message that says which one. The Go server reads `.env` itself (no extra library); Vite reads it through `envDir`. Inside the Docker image the paths differ, so the Dockerfile sets the server variables; the page is built with your `.env` (or `.env.example` if there is none).
 
 Tests:
 

@@ -1,32 +1,33 @@
-// Command server runs the courier auto-assign backend.
+// Command server runs the courier auto-assign backend. Settings come from
+// .env (see .env.example in the repository root); flags override them.
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"delivery/internal/api"
+	"delivery/internal/config"
 	"delivery/internal/store"
 )
 
 func main() {
-	addr := flag.String("addr", ":8080", "listen address")
-	dataPath := flag.String("data", "../data/data.json", "seed data file")
-	geoPath := flag.String("geo", "../data/regions.geojson", "region shapes file")
-	staticDir := flag.String("static", "", "optional folder with the built page to serve")
-	flag.Parse()
+	cfg, err := config.Load(os.Args[1:])
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
 
-	s, err := store.LoadFiles(*dataPath, *geoPath)
+	s, err := store.LoadFiles(cfg.DataFile, cfg.RegionsFile)
 	if err != nil {
 		log.Fatalf("load seed: %v", err)
 	}
 	srv := &http.Server{
-		Addr:              *addr,
-		Handler:           api.Handler(s, *staticDir),
+		Addr:              cfg.Addr,
+		Handler:           api.Handler(s, cfg.StaticDir),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-	log.Printf("listening on %s", *addr)
+	log.Printf("listening on %s", cfg.Addr)
 	log.Fatal(srv.ListenAndServe())
 }

@@ -3,6 +3,7 @@ import type { Point, Route, State } from "../types";
 import { isBroken, kg, kindLabel } from "../logic";
 import { hubIcon, mapModeClass, newStartIcon, orderIcon, regionStyle, startIcon, type MapMode } from "../mapStyles";
 import { cn } from "../ui";
+import { config } from "../config";
 import { MapClickCatcher } from "./MapClickCatcher";
 import { RegionsLayer } from "./RegionsLayer";
 
@@ -27,8 +28,8 @@ export function MapView(props: Props) {
   const couriersById = Object.fromEntries(state.couriers.map((c) => [c.id, c]));
 
   return (
-    <MapContainer center={[state.hub.lat, state.hub.lng]} zoom={12} className={cn("min-h-0 flex-1", mapModeClass[mode])} doubleClickZoom={mode === "none"}>
-      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    <MapContainer center={[state.hub.lat, state.hub.lng]} zoom={config.mapZoom} className={cn("min-h-0 flex-1", mapModeClass[mode])} doubleClickZoom={mode === "none"}>
+      <TileLayer attribution={config.tileAttribution} url={config.tileUrl} />
       <MapClickCatcher enabled={mode === "pickStart"} onPick={props.onPickPoint} />
 
       {props.shapes && (
