@@ -1,79 +1,156 @@
-# Test task: courier auto-assign
+# Courier auto-assign
 
-## The story
+A dispatcher's tool for one hub in Tashkent. The page shows a map of regions, orders and couriers. On it the dispatcher chooses each courier's regions, adds couriers and hands out orders. A Go server stores the data and checks every rule.
 
-You are building the piece of a delivery company that decides which courier takes which order today. Time budget: 2 working days.
+- **Backend:** Go 1.23+, standard library only (`net/http`, `encoding/json`). Data lives in memory and is reloaded from `data/` on every start.
+- **Frontend:** React 19 + TypeScript (Vite), Leaflet with OpenStreetMap tiles.
+- The task text is in [docs/TASK.md](docs/TASK.md).
 
-The company has one **hub** (a warehouse) in Tashkent. Every parcel passes through it, so there are two kinds of order:
+## How to run
 
-- **Pickup**: a courier drives to a seller, collects the parcel and brings it to the hub.
-- **Delivery**: a courier takes a parcel from the hub to the buyer.
+With Docker (one command, then open http://localhost:8080):
 
-The city is split into **regions** (districts). Each courier works only in the regions a dispatcher has chosen for them, and only on the kinds of order they are set up for: some couriers do pickups only, some deliveries only, some both. A courier can also carry only so much in one day.
+```sh
+docker compose up --build
+```
 
-You build the dispatcher's tool: a page with a map where they choose each courier's regions, add couriers and hand out orders, and the backend that checks every rule.
+Without Docker, using two terminals (needs Go ≥ 1.23 and Node ≥ 20):
 
-## What to build
+```sh
+cd backend && go run .                    # API on :8080, loads ../data/*
+cd frontend && npm install && npm run dev # page on http://localhost:5173, /api goes to :8080
+```
 
-A backend and a web page for the dispatcher. Both are required.
+Tests:
 
-**The page**
+```sh
+cd backend && go test ./...
+```
 
-1. **Map.** Show the regions as shapes with their names, the hub, and every order as a pin. Pickups and deliveries look different. An order that has a courier takes that courier's colour.
-2. **Choose a courier's regions on the map.** Pick a courier from a select and their regions light up. Clicking a region adds or removes it. Save stores the change on the server.
-3. **Add a courier.** A form with name, kinds of work, `max_parcels`, `max_kg` and a start point, set by clicking the map or typing coordinates. Check the fields in the page and again on the server.
-4. **Assign an order by hand.** Pick an order on the map or in a list, then pick a courier. If the server refuses, say why in plain words, for example "Kamola does not work in Bektemir".
-5. **Courier panel.** For each courier: kinds, regions, load used against the limits, the stops in route order with km per leg, and the total km. Orders that can never be assigned are listed separately with their reason.
+## API
 
-**The server** stores couriers and orders and enforces every rule. Checks in the page are only for comfort: a request sent by hand must be refused too.
+Every error response is JSON: `{"code": "...", "error": "plain sentence"}`. A form error also carries `"fields": {"max_kg": "..."}`.
 
-Use any language. Go for the backend and React for the page is a plus, since that is what we use, but it is not required. Keeping data in memory or in SQLite is fine, and losing changes on restart is fine. For the map use Leaflet with OpenStreetMap tiles: no key or paid API is needed.
+| Method | Path | Body | Notes |
+| --- | --- | --- | --- |
+| GET | `/api/state` | | hub, regions, couriers (with load, route, better route, orders outside their regions), orders, and orders that cannot be assigned with the reason |
+| GET | `/api/regions.geojson` | | region shapes |
+| POST | `/api/couriers` | `{name, kinds, max_parcels, max_kg, start:{lat,lng}, active?, regions?}` | 201, or 400 with `fields` |
+| PUT | `/api/couriers/{id}/regions` | `{regions: [...]}` | replaces the courier's regions |
+| PUT | `/api/orders/{id}/courier` | `{courier_id}` | assigns the order, or moves it if another courier holds it |
+| DELETE | `/api/orders/{id}/courier` | | takes the order off its courier |
+| POST | `/api/auto-assign` | | `{assigned: [...], unplaced: [{order_id, reason}]}` |
 
-## Rules
+Status codes: 400 for an unusable request (bad JSON, wrong types, unknown fields, failed checks), 404 for an unknown order or courier, 409 for a rule refusal.
 
-- A courier can take an order only when they are active, do that kind of work (pickup or delivery), work in the order's region, and still have room. Each courier has a daily limit of parcels and of kilograms, and pickups and deliveries count towards the same limit.
-- When an assignment breaks a rule, the server refuses it and the page says why.
-- Some orders in the seed data are broken on purpose. Find them, show them with the reason, and never let them be assigned.
-- Changing a courier's regions does not take away orders they already hold. Mark the ones that are now outside their regions.
-- A courier's route is their pickups, then the hub, then their deliveries, each in the order they were given. Show the straight-line km for each leg and the total.
+Try it with curl:
 
-If something is unclear, decide, write the decision in your README and keep going.
+```sh
+curl -X PUT localhost:8080/api/orders/o12/courier -d '{"courier_id":"c5"}'
+# 409 {"code":"wrong_region","error":"Kamola does not work in Bektemir"}
+```
 
-## Seed data
+## Rules the server enforces
 
-Two files come with this task. Load them on start.
+All rules live in [backend/internal/domain/rules.go](backend/internal/domain/rules.go) (`CanTake`). They are checked in this order, and the first rule that fails gives the message:
 
-- `data.json`: the hub, the regions, the couriers and today's orders. No order has a courier yet.
-- `regions.geojson`: rough region shapes for the map, not the real district borders.
+1. The order is not broken: `Order o15 cannot be assigned: Unknown order type "return"`
+2. The courier is active: `Sardor is not active today`
+3. The courier does that kind of work: `Dilnoza does not do deliveries`
+4. The courier works in the order's region: `Kamola does not work in Bektemir`
+5. Parcel room is left, with pickups and deliveries counted together: `Kamola has no room: already 3 of 3 parcels today`
+6. Weight room is left: `Kamola cannot carry 6 kg more: already 12 of 15 kg today`
 
-You design the API between the page and the server yourself.
+The store holds one mutex around each change, so a check and the change it allows happen as one step.
 
-## Bonus
+## The seed data
 
-Only once the required parts work. One done well beats three half done.
+These orders are broken. They are shown on the map with a red dashed "!" pin and in the panel with their reason, and they can never be assigned:
 
-- **Auto-assign.** One button gives every free order to the nearest courier who is allowed to take it, keeps hand assignments as they are, and lists the orders it could not place with the reason. Explain in your README how you chose "nearest".
-- **Reassign.** Move an order to another courier in one step, or take it off a courier. If the new courier is not allowed, the order stays where it was.
-- **Better routes.** Reorder each courier's stops to cut the total km, and show the km before and after.
-- **Docker.** One command starts everything.
-
-## Hand-in and scoring
-
-Send a link to a git repo. It must contain:
-
-- **README**: how to run it in under five commands, every assumption you made, what you skipped and why, how long it took, and how you used AI tools, if at all
-- **Tests** for the server rules: every way an assignment can be refused, a region change, and a refused new courier
-- **Commit history** as you worked. One commit at the end loses points
-
-We then run it, try to break it from the page and with curl, and talk with you for 30 minutes about one decision you made.
-
-| What we check | Points |
+| Order | Problem |
 | --- | --- |
-| Hand assignment: the server enforces every rule, and the page explains refusals in plain words | 25 |
-| Choosing regions on the map works and is saved | 20 |
-| Add courier: checked in the page and on the server | 15 |
-| Courier panel: load, stops and km are right | 10 |
-| Broken orders shown with their reason; nothing crashes on them | 10 |
-| Tests, README and commits | 10 |
-| Code is easy to read and change | 10 |
-| Bonus: auto-assign +10, reassign +5, anything else +5 | up to +20 |
+| o08 | weight is 0 kg |
+| o15 | type `"return"` is not pickup or delivery |
+| o16 | region `"Olmazor"` is not in the region list (the point falls inside Chilonzor's shape, but I do not guess) |
+| o20 | `lat` is `null`, so there is no pin; the order appears only in the lists |
+| o03 (second one) | duplicate id. The first `o03` is kept. The second gets the internal id `o03-2` and is marked broken, because its data differs slightly and nobody can tell which copy is right |
+
+These orders are valid, but no courier can take them right now. They are listed under "Orders that cannot be assigned", and the reason is worked out again on every request, so it changes when couriers or regions change:
+
+| Order | Reason |
+| --- | --- |
+| o07 | No courier in Yashnobod does pickups (Bekzod does deliveries only) |
+| o10 | 45 kg is more than any suitable courier can carry in a day (Aziz's limit is 40 kg) |
+| o12 | No courier works in Bektemir |
+
+Other things in the data:
+
+- **o06** has region `" chilonzor "`. I read it as **Chilonzor**, ignoring case and extra spaces, and the order shows a note saying so. The intent is clear and the point lies inside Chilonzor, so refusing the order would only create work for the dispatcher. This is the one place where I fix up input instead of refusing it.
+- **o23** was created at 08:00 but sits near the end of the file. Nothing breaks: auto-assign handles orders oldest first, so it goes first.
+- **Jasur** (c6) has no regions, so can take nothing until the dispatcher adds some. **Sardor** (c4) is inactive.
+
+## Decisions and assumptions
+
+- **One endpoint for assigning and moving.** `PUT /orders/{id}/courier` assigns a free order, or moves an assigned order in one step. If the new courier is refused, the order stays with the old one. Assigning to the courier who already has the order is refused as `already_assigned`.
+- **The route** is the courier's start point, then their pickups in the order given, then the hub, then their deliveries in the order given. A courier with only deliveries goes start → hub → deliveries. A courier with only pickups ends at the hub. A courier with no orders has no route (0 km). "Order given" means the time of assignment, so a moved order goes to the end of its new courier's list.
+- **Km** are straight-line (haversine) distances. Each leg is rounded to 0.01 km, and the total is the sum of the rounded legs, so the numbers on screen add up.
+- **Region change** replaces the whole list. Orders the courier already holds stay with them. Those outside the new regions get an orange ring on the map and an "outside" tag in the panel and lists. New orders in a dropped region are refused.
+- **New courier checks** (the same in the page and on the server, in [validate.go](backend/internal/domain/validate.go) and [logic.ts](frontend/src/logic.ts)):
+  - Name is required, at most 50 characters, and must not match an existing name ignoring case. Refusal messages use names, so two Kamolas would make "Kamola does not work in Bektemir" ambiguous.
+  - At least one kind of work.
+  - `max_parcels` is a whole number from 1 to 100.
+  - `max_kg` is more than 0 and at most 500.
+  - The start point is within lat 41.0–41.6 and lng 69.0–69.6 (around Tashkent).
+  - Regions are optional when adding. The page asks for them on the map right after saving.
+  - Unknown JSON fields and wrong types (for example `"max_parcels": 2.5` or `"max_kg": "10"`) are refused with a field message.
+- **Weights** use a 1e-9 tolerance, so 12.1 + 2.9 kg fits a 15 kg limit despite float rounding.
+- **Courier colours** come from a fixed palette by the courier's position in the list.
+- Couriers cannot be edited (except regions), deactivated or deleted, and orders cannot be created. The task does not ask for this.
+
+## Bonus parts
+
+- **Auto-assign** (button at the top right). It takes every free, valid order, oldest first, and gives it to the allowed courier for whom it is **nearest**. Orders already assigned are not touched. Orders it cannot place are listed with the reason: either the permanent reason (region, kind, inactive, weight) or "Every courier allowed to take it is full: …" with each courier's limit.
+  - **How "nearest" is chosen:** the courier whose route grows the least, in km, when the order is added at the end of their pickups or deliveries. I picked this over "closest start point" because it accounts for where the courier already has to go, including the trip to the hub. For a courier with no orders it is roughly start → order → hub. Ties go to the courier who comes first in the list.
+  - It is greedy and does not look ahead: an early order may take the last free space that a later order needed more.
+- **Reassign:** in the order box, choose another courier and press "Move", or press "Take off".
+- **Better routes:** each courier card shows the km in the given order and in a shorter order. A checkbox switches the stop list and the map line to the shorter order. Pickups stay before the hub and deliveries after it. Each part is solved exactly by trying every order when it has 7 stops or fewer, and otherwise by nearest neighbour followed by 2-opt. The shorter order is only shown, never saved: the rule says the route follows the order given.
+- **Docker:** `docker compose up --build` builds the page and the server into one image.
+
+## What I skipped and why
+
+- **A database:** the task allows memory, and losing changes on restart is fine.
+- **Logins and roles:** not asked for.
+- **Frontend tests:** the rules that matter run on the server, and the server has the tests. I checked the page by driving it in a headless browser: refusing o12 for Kamola, a region click on the map, the add-courier form with bad and good input, and auto-assign.
+- **Checking that an order's point lies inside its region's shape:** the shapes are described as rough, so a mismatch would not prove the data is wrong. I ran the check once by hand, and every order with a known region lies inside its own shape.
+- **The Docker build was not run on my machine** (Docker is not installed here). The Dockerfile is a plain multi-stage build.
+
+## Tests
+
+`cd backend && go test ./...`
+
+- [domain/rules_test.go](backend/internal/domain/rules_test.go): each refusal (broken order, inactive courier, wrong kind, wrong region, parcel limit, weight limit), shared limit for pickups and deliveries, edge cases at the limit, and the "nobody can take it" reasons.
+- [domain/validate_test.go](backend/internal/domain/validate_test.go): every way a new courier is refused.
+- [domain/route_test.go](backend/internal/domain/route_test.go): stop order, leg sums, empty route, and a shorter order that is never worse.
+- [store/store_test.go](backend/internal/store/store_test.go): seed problems found, broken orders never assignable, a region change keeps orders and marks them, unknown regions refused, a refused courier is not stored, a move refused or done, and auto-assign respects every rule and keeps hand assignments.
+- [api/api_test.go](backend/internal/api/api_test.go): requests sent by hand over HTTP, including bad JSON, wrong types, unknown fields and unknown ids, with status codes and messages.
+
+## Project layout
+
+```
+backend/
+  main.go                 flags, load seed, start server
+  internal/domain/        types, rules, validation, routes (no I/O, easy to test)
+  internal/store/         in-memory data, seed checks, assign / regions / auto-assign, state view
+  internal/api/           HTTP handlers and error mapping
+frontend/src/
+  App.tsx                 page state and layout
+  api.ts, types.ts        server calls and JSON shapes
+  logic.ts                colours, formatting, form checks (comfort only)
+  components/             MapView, RegionEditor, OrdersPanel, CourierPanel, AddCourierForm
+data/                     data.json, regions.geojson (seed)
+```
+
+## Time and AI use
+
+- **Time:** _fill in_.
+- **AI:** I built this with Claude Code (an AI coding assistant). It read the task, wrote the backend, tests, frontend and this README, and checked the page in a headless browser. I reviewed the decisions above and the commits.
