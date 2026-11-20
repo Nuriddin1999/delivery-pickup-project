@@ -25,7 +25,7 @@ func TestLoadFindsBrokenOrders(t *testing.T) {
 	}
 	want := map[string]string{
 		"o08":   "Weight must be more than 0 kg",
-		"o15":   `Unknown order type "return"`,
+		"o15":   `Order type "return" is not supported`,
 		"o16":   `Unknown region "Olmazor"`,
 		"o20":   "Missing coordinates",
 		"o03-2": "Duplicate id: o03",

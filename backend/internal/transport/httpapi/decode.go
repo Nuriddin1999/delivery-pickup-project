@@ -46,8 +46,8 @@ func describeDecodeError(err error) (msg, field string) {
 	case errors.As(err, &tooBig):
 		return "The request body is too large", ""
 	case errors.As(err, &typeErr):
-		msg := fmt.Sprintf("%s has the wrong type: %s", typeErr.Field, expectedType(typeErr.Type.String()))
-		return msg, strings.Split(typeErr.Field, ".")[0]
+		field := strings.Split(typeErr.Field, ".")[0]
+		return fmt.Sprintf("%s must be %s", fieldLabel(field), expectedType(typeErr.Type.String())), field
 	case strings.HasPrefix(err.Error(), "json: unknown field"):
 		return "Unknown field " + strings.TrimPrefix(err.Error(), "json: unknown field "), ""
 	}
@@ -57,15 +57,28 @@ func describeDecodeError(err error) (msg, field string) {
 func expectedType(goType string) string {
 	switch strings.TrimPrefix(goType, "*") {
 	case "int":
-		return "expected a whole number"
+		return "a whole number"
 	case "float64":
-		return "expected a number"
+		return "a number"
 	case "string":
-		return "expected text"
+		return "text"
 	case "bool":
-		return "expected true or false"
+		return "true or false"
 	case "[]string":
-		return "expected a list of text"
+		return "a list of text"
 	}
-	return "expected " + goType
+	return "of another type"
+}
+
+// fieldLabels names JSON fields the way the page labels them.
+var fieldLabels = map[string]string{
+	"name": "Name", "kinds": "Kinds of work", "regions": "Regions", "active": "Active",
+	"max_parcels": "Max parcels", "max_kg": "Max kg", "start": "Start point", "courier_id": "Courier",
+}
+
+func fieldLabel(field string) string {
+	if label, ok := fieldLabels[field]; ok {
+		return label
+	}
+	return field
 }

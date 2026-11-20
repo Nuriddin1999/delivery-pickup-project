@@ -89,7 +89,7 @@ curl -X PUT localhost:8080/api/orders/o12/courier -d '{"courier_id":"c5"}'
 
 All rules live in [backend/internal/domain/rules.go](backend/internal/domain/rules.go) (`CanTake`). They are checked in this order, and the first rule that fails gives the message:
 
-1. The order is not broken: `Order o15 cannot be assigned: Unknown order type "return"`
+1. The order is not broken: `Order o15 cannot be assigned: Order type "return" is not supported: only pickups and deliveries can be assigned`
 2. The courier is active: `Sardor is not active today`
 3. The courier does that kind of work: `Dilnoza does not do deliveries`
 4. The courier works in the order's region: `Kamola does not work in Bektemir`

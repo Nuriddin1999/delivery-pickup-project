@@ -64,7 +64,7 @@ func TestAssignRefusedWithPlainMessage(t *testing.T) {
 		{"no courier id", "/api/orders/o01/courier", `{}`, 400, "Choose a courier"},
 		{"not JSON", "/api/orders/o01/courier", `courier=c1`, 400, "not valid JSON"},
 		{"empty body", "/api/orders/o01/courier", ``, 400, "empty"},
-		{"wrong type", "/api/orders/o01/courier", `{"courier_id":1}`, 400, "wrong type"},
+		{"wrong type", "/api/orders/o01/courier", `{"courier_id":1}`, 400, "Courier must be text"},
 		{"unknown field", "/api/orders/o01/courier", `{"courier":"c1"}`, 400, "Unknown field"},
 	}
 	for _, c := range cases {

@@ -19,7 +19,7 @@ func (in orderJSON) toDomain(city domain.City, usedIDs map[string]int) domain.Or
 	o.ID = uniqueID(in.ID, usedIDs, problem)
 
 	if !o.Type.Valid() {
-		problem("Unknown order type %q (expected pickup or delivery)", in.Type)
+		problem("Order type %q is not supported: only pickups and deliveries can be assigned", in.Type)
 	}
 
 	if name, ok := city.CanonicalRegion(in.Region); !ok {
@@ -52,7 +52,7 @@ func (in orderJSON) toDomain(city domain.City, usedIDs map[string]int) domain.Or
 	if t, err := time.Parse(time.RFC3339, in.CreatedAt); err == nil {
 		o.CreatedAt = t
 	} else {
-		o.Notes = append(o.Notes, fmt.Sprintf("Unreadable created_at %q", in.CreatedAt))
+		o.Notes = append(o.Notes, fmt.Sprintf("Creation time %q could not be read", in.CreatedAt))
 	}
 	return o
 }
