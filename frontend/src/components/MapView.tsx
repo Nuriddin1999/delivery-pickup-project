@@ -158,7 +158,7 @@ function regionStyle(name: string, mode: MapMode, draft: string[] | null, color:
       fillOpacity: on ? 0.35 : 0.06,
     }
   }
-  return { color: '#475569', weight: 1, fillColor: '#94a3b8', fillOpacity: 0.08 }
+  return { color: '#334155', weight: 2, fillColor: '#94a3b8', fillOpacity: 0.12 }
 }
 
 // ---- icons ----

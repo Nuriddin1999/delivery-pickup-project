@@ -143,8 +143,8 @@ aside { width: 440px; display: flex; flex-direction: column; background: var(--p
   display: flex; align-items: center; justify-content: center; border: 2px solid white;
 }
 .region-label {
-  background: transparent; border: none; box-shadow: none; font-weight: 700; color: #334155;
-  text-shadow: 0 0 3px white, 0 0 3px white;
+  background: rgba(255, 255, 255, 0.88); border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: none;
+  padding: 1px 7px; font-weight: 700; font-size: 12px; color: #1e293b;
 }
 .region-label::before { display: none; }
 

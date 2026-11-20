@@ -77,8 +77,10 @@ export function checkCourierForm(
   const name = f.name.trim().replace(/\s+/g, ' ')
   if (!name) errors.name = 'Name is required'
   else if ([...name].length > LIMITS.nameLen) errors.name = `Name must be at most ${LIMITS.nameLen} characters`
-  else if (takenNames.some((n) => n.toLowerCase() === name.toLowerCase()))
-    errors.name = `There is already a courier called ${name}`
+  else {
+    const taken = takenNames.find((n) => n.toLowerCase() === name.toLowerCase())
+    if (taken) errors.name = `There is already a courier called ${taken}`
+  }
 
   const kinds: Kind[] = []
   if (f.pickup) kinds.push('pickup')
