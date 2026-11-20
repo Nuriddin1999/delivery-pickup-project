@@ -19,7 +19,7 @@ interface Props {
 const check = "inline-flex cursor-pointer items-center gap-1.5";
 
 export function AddCourierForm({ takenNames, start, onStartChange, onCreated }: Props) {
-  const { register, errors, serverError, busy, submit } = useCourierForm(start, onStartChange, takenNames, onCreated);
+  const { register, errors, serverError, busy, canSubmit, submit } = useCourierForm(start, onStartChange, takenNames, onCreated);
 
   return (
     <form onSubmit={submit} noValidate>
@@ -62,7 +62,7 @@ export function AddCourierForm({ takenNames, start, onStartChange, onCreated }: 
 
         <p className={hintText}>Regions are chosen after saving, on the map with “Regions of”.</p>
         {serverError && <Alert tone="error">{serverError}</Alert>}
-        <Button variant="primary" type="submit" disabled={busy}>
+        <Button variant="primary" type="submit" disabled={!canSubmit} title={canSubmit ? undefined : "Fill in the name, kinds of work, both limits and the start point"}>
           {busy ? "Saving…" : "Add courier"}
         </Button>
       </Card>

@@ -31,7 +31,9 @@ export function useCourierForm(start: StartFields, onStartChange: (s: StartField
   }, [start.lat, start.lng, getValues, setValue, formState.isSubmitted]);
 
   // Typed lat/lng → preview pin on the map.
-  const [lat, lng] = watch(["lat", "lng"]);
+  const [lat, lng, name, maxParcels, maxKg, pickup, delivery] = watch(["lat", "lng", "name", "maxParcels", "maxKg", "pickup", "delivery"]);
+  // Submit stays off until every required field has something in it.
+  const requiredFilled = [name, maxParcels, maxKg, lat, lng].every((v) => v.trim() !== "") && (pickup || delivery);
   useEffect(() => {
     if (lat !== start.lat || lng !== start.lng) onStartChange({ lat, lng });
   }, [lat, lng]); // eslint-disable-line react-hooks/exhaustive-deps -- only react to typing
@@ -58,6 +60,7 @@ export function useCourierForm(start: StartFields, onStartChange: (s: StartField
     errors: formState.errors,
     serverError: mutation.error ? errorMessage(mutation.error) : null,
     busy: mutation.isPending,
+    canSubmit: requiredFilled && !mutation.isPending,
     submit,
   };
 }
