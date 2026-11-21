@@ -157,19 +157,6 @@ Other things in the data:
 
 The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page for a dispatcher who uses it all working day, in three ways: **layout**, **readability**, and **the number of steps needed to assign an order**, and to choose the changes myself. Below is every change, which of the three it serves, and why I made it. The look (dark header, map over the order table, order panel with courier cards and one big button) follows mockups I was given. The texts stay in English like the rest of the project, including the server's messages.
 
-### Before and after
-
-The data is the same in both: seven orders given out by hand ([how the screenshots are taken](#how-the-screenshots-were-taken)).
-
-| | Before | After |
-| --- | --- | --- |
-| An order open, ready to assign | ![before](docs/screenshots/before-order-selected.png) | ![after](docs/screenshots/after-order-selected.png) |
-| Courier panel | ![before](docs/screenshots/before-couriers.png) | ![after](docs/screenshots/after-couriers.png) |
-| One courier's route | ![before](docs/screenshots/before-courier-route.png) | ![after](docs/screenshots/after-courier-route.png) |
-| Order list | ![before](docs/screenshots/before-orders.png) | ![after](docs/screenshots/after-orders.png) |
-
-On a phone (360 px wide), after: <img src="docs/screenshots/after-phone-order.png" alt="the page on a 360 px phone" width="240">
-
 ### Steps to assign an order
 
 | Way of working | Before | After |
@@ -235,10 +222,6 @@ On a phone (360 px wide), after: <img src="docs/screenshots/after-phone-order.pn
 - **Russian texts from the mockups:** the project, its server messages and its tests are in English, and mixing languages would be worse than either.
 - **A dark theme:** it does not help any of the three goals.
 - **Frontend tests**, for the same reason as before: the rules live on the server. The new endpoint has Go tests. I drove the new flow in a headless browser: ↓ opens o23 (the oldest) with Aziz chosen, Enter gives it to him and opens o01, U takes it back, and choosing Kamola for o12 and pressing "Try Kamola anyway" shows "Kamola does not work in Bektemir". I also measured the split (the table expands and the map comes back in 0.3 s; while dragging the bar is 0 px from the pointer) and the phone layout at 360 and 320 px.
-
-### How the screenshots were taken
-
-`docs/screenshots/before-*.png` were taken from the commit before any of these changes, and `after-*.png` from the finished page. Both come from the same script: a fresh server, the same seven orders given out through the API (o23, o01, o05 → Aziz; o02, o11 → Bekzod; o03 → Dilnoza; o14 → Kamola), then headless Chrome at 1440×900 on `/couriers`, `/couriers/c1`, `/orders` and `/orders/o22`. The phone screenshot is the same data at 360 px wide, on `/orders/o22`, as a full-page picture.
 
 ## What I skipped and why
 
@@ -326,4 +309,4 @@ Imports use the `@/` alias for `src/`. Components only draw; state and server ca
 
 - **Time:** _fill in_.
 - **AI:** I built this with Claude Code (an AI coding assistant). It read the task, wrote the backend, tests, frontend and this README, and checked the page in a headless browser. I reviewed the decisions above and the commits.
-- **AI, follow-up task:** I used Claude Code the same way. I went through each possible change with it before any code was written, then chose the set above. It took the "before" screenshots first, then wrote the candidates endpoint and its tests, the page changes and this section, drove the new flow in a headless browser, and took the "after" screenshots with the same script. When I gave it mockups of the look I wanted, it rebuilt the layout after them (keeping English) and retook the "after" screenshots.
+- **AI, follow-up task:** I used Claude Code the same way. I went through each possible change with it before any code was written, then chose the set above. It wrote the candidates endpoint and its tests, the page changes and this section, and drove the new flow in a headless browser. When I gave it mockups of the look I wanted, it rebuilt the layout after them (keeping English).
