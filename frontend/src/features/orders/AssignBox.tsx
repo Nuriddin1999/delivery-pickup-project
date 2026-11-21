@@ -43,19 +43,23 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
   const [picked, setPicked] = useState<string | null>(null);
 
   const nearestId = candidates?.find((c) => c.nearest)?.courier_id ?? null;
-  const chosenId = picked ?? nearestId;
+  // A pick only counts while that courier is still allowed. After the order went to them they
+  // hold it and are no longer a candidate, so "Move to <the holder>" must never be offered.
+  const pickedStillAllowed = !!picked && !!candidates?.some((c) => c.courier_id === picked && c.allowed);
+  const chosenId = pickedStillAllowed ? picked : nearestId;
   const chosen = chosenId ? couriersById[chosenId] : undefined;
 
   const giveTo = (courierId: string) => {
     const target = couriersById[courierId];
     if (!target || actions.busy) return;
-    actions.assign(courierId, () =>
+    actions.assign(courierId, () => {
+      setPicked(null);
       onChanged(
         current
           ? { message: `${order.id} moved from ${current.name} to ${target.name}`, undo: () => dispatchApi.assign(order.id, current.id), newlyAssigned: false }
           : { message: `${order.id} given to ${target.name}`, undo: () => dispatchApi.unassign(order.id), newlyAssigned: true },
-      ),
-    );
+      );
+    });
   };
 
   const takeOff = () => {
