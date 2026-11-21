@@ -17,6 +17,7 @@ const (
 	CodeWrongRegion     = "wrong_region"
 	CodeParcelLimit     = "parcel_limit"
 	CodeWeightLimit     = "weight_limit"
+	CodeKindInUse       = "kind_in_use"
 )
 
 // Refusal is a rule a request broke, with a sentence for the dispatcher.

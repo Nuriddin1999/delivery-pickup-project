@@ -208,3 +208,47 @@ func TestCandidatesOverHTTP(t *testing.T) {
 		t.Errorf("unknown order: %d", status)
 	}
 }
+
+func TestSetKindsOverHTTP(t *testing.T) {
+	srv := newServer(t)
+	cases := []struct {
+		name, body string
+		status     int
+		msg        string
+	}{
+		{"missing kinds", `{}`, 400, "kinds is required"},
+		{"none", `{"kinds":[]}`, 400, "at least one kind"},
+		{"unknown kind", `{"kinds":["fly"]}`, 400, "Unknown kind"},
+		{"wrong type", `{"kinds":"pickup"}`, 400, ""},
+		{"unknown field", `{"kind":["pickup"]}`, 400, "Unknown field"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			status, body := call(t, srv, "PUT", "/api/couriers/c2/kinds", c.body)
+			if status != c.status {
+				t.Errorf("status %d, want %d (%v)", status, c.status, body)
+			}
+			if msg, _ := body["error"].(string); !strings.Contains(msg, c.msg) {
+				t.Errorf("error %q, want it to contain %q", msg, c.msg)
+			}
+		})
+	}
+
+	if status, _ := call(t, srv, "PUT", "/api/couriers/c99/kinds", `{"kinds":["pickup"]}`); status != 404 {
+		t.Errorf("unknown courier: %d", status)
+	}
+
+	// Aziz (c1) does both. Give him a delivery, then try to drop deliveries by hand.
+	if status, body := call(t, srv, "PUT", "/api/orders/o06/courier", `{"courier_id":"c1"}`); status != 200 {
+		t.Fatalf("assign o06: %d %v", status, body)
+	}
+	status, body := call(t, srv, "PUT", "/api/couriers/c1/kinds", `{"kinds":["pickup"]}`)
+	if status != 409 || body["code"] != "kind_in_use" || !strings.Contains(body["error"].(string), "Aziz still has 1 delivery: o06") {
+		t.Fatalf("drop deliveries while holding o06: %d %v", status, body)
+	}
+	// Dropping pickups is fine: he holds no pickup.
+	status, body = call(t, srv, "PUT", "/api/couriers/c1/kinds", `{"kinds":["delivery"]}`)
+	if status != 200 || len(body["kinds"].([]any)) != 1 {
+		t.Fatalf("drop pickups: %d %v", status, body)
+	}
+}
