@@ -4,9 +4,11 @@ import { Platform } from 'react-native';
 export interface Courier {
   id: string;
   name: string;
-  /** The courier's order ids in the order of their route. */
-  routeOrderIds: string[];
+  /** Today's route after the start point: pickups, the hub, deliveries. Empty when nothing is held. */
+  stops: RouteStop[];
 }
+
+export type RouteStop = { kind: 'hub' } | { kind: 'pickup' | 'delivery'; orderId: string };
 
 export interface Order {
   id: string;
@@ -14,6 +16,8 @@ export interface Order {
   region: string;
   weight_kg: number;
   courier_id?: string;
+  /** When the courier marked the stop done; absent while it is not. */
+  done_at?: string;
 }
 
 export interface DispatchState {
@@ -44,7 +48,7 @@ function apiUrl(): string {
 export const API_URL = apiUrl();
 
 interface StateResponse {
-  couriers: { id: string; name: string; route: { stops: { order_id?: string }[] } }[];
+  couriers: { id: string; name: string; route: { stops: { kind: string; order_id?: string }[] } }[];
   orders: Order[];
 }
 
@@ -57,17 +61,23 @@ export async function fetchState(signal?: AbortSignal): Promise<DispatchState> {
     couriers: state.couriers.map((c) => ({
       id: c.id,
       name: c.name,
-      routeOrderIds: c.route.stops.flatMap((s) => (s.order_id ? [s.order_id] : [])),
+      stops: c.route.stops.flatMap((s): RouteStop[] =>
+        s.kind === 'hub' ? [{ kind: 'hub' }] : s.order_id ? [{ kind: s.kind === 'pickup' ? 'pickup' : 'delivery', orderId: s.order_id }] : [],
+      ),
     })),
     orders: state.orders,
   };
 }
 
-/** The courier's orders, in the order of their route. */
-export function ordersOf(courier: Courier, orders: Order[]): Order[] {
-  const byId = new Map(orders.map((o) => [o.id, o]));
-  const inRoute = courier.routeOrderIds.flatMap((id) => byId.get(id) ?? []);
-  // Anything held but missing from the route (should not happen) goes last.
-  const rest = orders.filter((o) => o.courier_id === courier.id && !courier.routeOrderIds.includes(o.id));
-  return [...inRoute, ...rest];
+/**
+ * Marks the stop of one of the courier's orders done. The server checks the
+ * rules (the order is theirs, not done yet, every earlier stop is done) and
+ * answers with a plain sentence when it refuses; that sentence is thrown.
+ */
+export async function markStopDone(courierId: string, orderId: string): Promise<Order> {
+  const path = `/api/couriers/${encodeURIComponent(courierId)}/stops/${encodeURIComponent(orderId)}/done`;
+  const res = await fetch(`${API_URL}${path}`, { method: 'POST' });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error ?? `Server answered ${res.status}`);
+  return body as Order;
 }

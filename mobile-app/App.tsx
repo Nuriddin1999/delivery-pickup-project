@@ -2,20 +2,21 @@ import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { API_URL, ordersOf } from './src/api';
+import { API_URL } from './src/api';
 import { OrderRow } from './src/OrderRow';
 import { Select } from './src/Select';
+import { StopList } from './src/StopList';
 import { useDispatchState } from './src/useDispatchState';
 
 export default function App() {
-  const { load, refreshing, offline, retry, refresh } = useDispatchState();
+  const { load, refreshing, offline, retry, refresh, sync } = useDispatchState();
   const [courierId, setCourierId] = useState('');
   const [listOpen, setListOpen] = useState(false);
 
   const data = load.status === 'ready' ? load.data : null;
   const me = data?.couriers.find((c) => c.id === courierId);
   const names = useMemo(() => new Map(data?.couriers.map((c) => [c.id, c.name])), [data]);
-  const orders = data ? (me ? ordersOf(me, data.orders) : data.orders) : [];
+  const orders = data?.orders ?? [];
 
   return (
     <View style={styles.container}>
@@ -57,28 +58,28 @@ export default function App() {
           </View>
 
           {offline && <Text style={styles.offline}>No connection to the server. Showing the last list.</Text>}
-          <Text style={styles.section}>
-            {me ? `Your orders, in route order (${orders.length})` : `All orders (${orders.length})`}
-          </Text>
-          <FlatList
-            style={styles.list}
-            showsVerticalScrollIndicator={false}
-            data={orders}
-            keyExtractor={(o) => o.id}
-            renderItem={({ item, index }) =>
-              me ? (
-                <OrderRow order={item} side={`Stop ${index + 1}`} />
-              ) : (
-                <OrderRow
-                  order={item}
-                  side={item.courier_id ? (names.get(item.courier_id) ?? item.courier_id) : 'Free'}
-                  sideMuted={!item.courier_id}
-                />
-              )
-            }
-            ListEmptyComponent={<Text style={styles.empty}>{me ? 'You have no orders yet.' : 'No orders.'}</Text>}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-          />
+          {me ? (
+            <StopList courier={me} orders={data.orders} refreshing={refreshing} onRefresh={refresh} onMarked={sync} />
+          ) : (
+            <>
+              <Text style={styles.section}>All orders ({orders.length})</Text>
+              <FlatList
+                style={styles.list}
+                showsVerticalScrollIndicator={false}
+                data={orders}
+                keyExtractor={(o) => o.id}
+                renderItem={({ item }) => (
+                  <OrderRow
+                    order={item}
+                    side={item.courier_id ? (names.get(item.courier_id) ?? item.courier_id) : 'Free'}
+                    sideMuted={!item.courier_id}
+                  />
+                )}
+                ListEmptyComponent={<Text style={styles.empty}>No orders.</Text>}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+              />
+            </>
+          )}
         </>
       )}
 

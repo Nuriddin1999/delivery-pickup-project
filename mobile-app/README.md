@@ -1,6 +1,6 @@
 # Courier mobile app
 
-A React Native app built with [Expo](https://expo.dev) and TypeScript. For now it shows one screen: the courier picks their name, and below it the orders are listed. It is the starting point for the courier phone app (the second part of [docs/TASK2.md](../docs/TASK2.md)).
+A React Native app built with [Expo](https://expo.dev) and TypeScript. The courier picks their name, sees today's stops in route order and marks each one done. The server checks the rules (see the root README, "Stop rules"). It is the starting point for the courier phone app (the second part of [docs/TASK2.md](../docs/TASK2.md)).
 
 ## How to run
 
@@ -23,7 +23,8 @@ You should see "Loading...", then "Please select yourself:" with a list of couri
 ## What the screen shows
 
 - **Nobody chosen:** all orders. Each row shows the order id, Pickup or Delivery, the region, the weight, and on the right the courier who holds it, or "Free".
-- **A courier chosen:** "You are {name}" and only that courier's orders, in the order of their route (Stop 1, Stop 2, ...). The route order comes from the server and is often not the order of the order ids. "Show all orders" goes back to everyone.
+- **A courier chosen:** "You are {name}" and today's stops in route order: pickups, a "Hub" line, deliveries, numbered like on the dispatcher's map. The header counts them ("Today's stops: 1 of 5 done"). "Show all orders" goes back to everyone.
+- **Marking a stop done:** only the next stop is highlighted and has a "Done" button. It asks "Stop 2 done?" first. A done stop gets a green check and the time. If the server refuses (for example the screen was out of date), its message is shown and the list reloads.
 - **Stays up to date:** while the app is open it asks the server every 5 seconds, so an order the dispatcher gives out or takes off shows up on the phone within seconds, with no reload. In the background it stops asking and catches up as soon as the app is opened again. Pull down on the list to load at once.
 - The first load shows "Loading..."; if it fails, the error and "Try again". If a later load fails, the list stays and a yellow note says there is no connection; it goes away when the server answers again.
 
@@ -54,10 +55,11 @@ npx expo-doctor    # dependency and config checks
 ## Files
 
 - `App.tsx`: the screen (loading, error with "Try again", courier select, order list)
+- `src/StopList.tsx`: today's stops of the chosen courier, with the Done button on the next one
 - `src/OrderRow.tsx`: one order in the list
 - `src/useDispatchState.ts`: loads couriers and orders and keeps them fresh (every 5 s, on return to the app, on pull down)
 - `src/Select.tsx`: the select: field, list of the same width under it, check next to the chosen one
-- `src/api.ts`: the server address, the request for couriers and orders, a courier's orders in route order
+- `src/api.ts`: the server address, the request for couriers, orders and routes, marking a stop done
 - `index.ts`: registers the app
 - `app.json`: app name, icons, orientation
 - `assets/`: icons and splash image
