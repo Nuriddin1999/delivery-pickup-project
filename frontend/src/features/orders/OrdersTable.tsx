@@ -42,7 +42,7 @@ export function OrdersTable({ state, colors, list, selectedId, onSelect, expande
         </div>
       </div>
 
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto max-[1000px]:overflow-x-auto max-[1000px]:overflow-y-visible">
+      <div data-order-scroll className="no-scrollbar min-h-0 flex-1 overflow-y-auto max-[1000px]:overflow-x-auto max-[1000px]:overflow-y-visible">
         {list.visible.length === 0 ? (
           <p className={`${hintText} p-4`}>No orders match. {list.query.show === "free" && "Every order a courier can take has one."}</p>
         ) : (
