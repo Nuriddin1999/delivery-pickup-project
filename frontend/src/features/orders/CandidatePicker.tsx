@@ -12,6 +12,8 @@ interface Props {
   colors: Record<string, string>;
   chosenId: string | null;
   onChoose: (courierId: string) => void;
+  /** shown when no courier is allowed */
+  emptyText: string;
 }
 
 /**
@@ -20,12 +22,12 @@ interface Props {
  * is marked and chosen at first. Couriers who cannot take the order are
  * disabled: greyed, not selectable, with the server's reason on the card.
  */
-export function CandidatePicker({ order, candidates, couriersById, colors, chosenId, onChoose }: Props) {
+export function CandidatePicker({ order, candidates, couriersById, colors, chosenId, onChoose, emptyText }: Props) {
   const allowed = candidates.filter((c) => c.allowed);
 
   return (
     <div className="flex flex-col gap-2" role="radiogroup" aria-label={`Courier for ${order.id}`}>
-      {allowed.length === 0 && <p className={hintText}>Nobody can take this order right now.</p>}
+      {allowed.length === 0 && <p className={hintText}>{emptyText}</p>}
       {candidates.map((cand) => {
         const c = couriersById[cand.courier_id];
         if (!c) return null;

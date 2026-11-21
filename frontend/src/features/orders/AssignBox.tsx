@@ -101,20 +101,24 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
               onChoose={(id) => {
                 setPicked(id);
               }}
+              emptyText={current ? `No other courier can take it. It stays with ${current.name}.` : "Nobody can take this order right now."}
             />
           )}
 
-          <button
-            type="button"
-            disabled={!chosen || actions.busy}
-            onClick={() => chosenId && giveTo(chosenId)}
-            className={cn(
-              "h-13 w-full cursor-pointer rounded-xl text-[18px] font-semibold shadow-sm transition-colors disabled:cursor-default disabled:opacity-50",
-              "bg-brand-600 text-white hover:bg-brand-700 disabled:hover:bg-brand-600",
-            )}
-          >
-            {actions.busy ? "Saving…" : chosen ? `${verb} to ${chosen.name}` : candidates ? "Nobody can take it" : "Choose a courier"}
-          </button>
+          {/* An assigned order nobody else can take needs no button: it simply stays where it is. */}
+          {(chosen || !current) && (
+            <button
+              type="button"
+              disabled={!chosen || actions.busy}
+              onClick={() => chosenId && giveTo(chosenId)}
+              className={cn(
+                "h-13 w-full cursor-pointer rounded-xl text-[18px] font-semibold shadow-sm transition-colors disabled:cursor-default disabled:opacity-50",
+                "bg-brand-600 text-white hover:bg-brand-700 disabled:hover:bg-brand-600",
+              )}
+            >
+              {actions.busy ? "Saving…" : chosen ? `${verb} to ${chosen.name}` : candidates ? "Nobody can take it" : "Choose a courier"}
+            </button>
+          )}
 
           {current && (
             <Button disabled={actions.busy} onClick={takeOff}>
