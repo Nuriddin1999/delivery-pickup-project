@@ -11,7 +11,7 @@ interface Props {
 export function UnassignableList({ items, onSelectOrder }: Props) {
   return (
     <section>
-      <h3 className="mt-2.5 mb-1 text-[15px] font-semibold">Orders that cannot be assigned</h3>
+      <h3 className="mt-2.5 mb-1 text-[15px] font-semibold">Orders that cannot be assigned <span className="font-normal text-slate-500">({items.length})</span></h3>
       {items.length === 0 && <p className={mutedText}>None.</p>}
       <ul className="m-0 list-none p-0">
         {items.map((u) => (
