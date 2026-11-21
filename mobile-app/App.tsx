@@ -1,40 +1,16 @@
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { API_URL, fetchState, ordersOf, type DispatchState } from './src/api';
+import { API_URL, ordersOf } from './src/api';
 import { OrderRow } from './src/OrderRow';
 import { Select } from './src/Select';
-
-type Load =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; data: DispatchState };
+import { useDispatchState } from './src/useDispatchState';
 
 export default function App() {
-  const [load, setLoad] = useState<Load>({ status: 'loading' });
-  const [refreshing, setRefreshing] = useState(false);
+  const { load, refreshing, offline, retry, refresh } = useDispatchState();
   const [courierId, setCourierId] = useState('');
   const [listOpen, setListOpen] = useState(false);
-
-  /** First load shows "Loading..."; later ones (pull to refresh) keep the list on screen. */
-  const loadState = useCallback((opts: { signal?: AbortSignal; refresh?: boolean } = {}) => {
-    if (opts.refresh) setRefreshing(true);
-    else setLoad({ status: 'loading' });
-    fetchState(opts.signal)
-      .then((data) => setLoad({ status: 'ready', data }))
-      .catch((e: unknown) => {
-        if (opts.signal?.aborted) return;
-        setLoad({ status: 'error', message: e instanceof Error ? e.message : String(e) });
-      })
-      .finally(() => setRefreshing(false));
-  }, []);
-
-  useEffect(() => {
-    const ctrl = new AbortController();
-    loadState({ signal: ctrl.signal });
-    return () => ctrl.abort();
-  }, [loadState]);
 
   const data = load.status === 'ready' ? load.data : null;
   const me = data?.couriers.find((c) => c.id === courierId);
@@ -52,7 +28,7 @@ export default function App() {
         <View style={styles.block}>
           <Text style={styles.text}>Could not load data from {API_URL}</Text>
           <Text style={styles.muted}>{load.message}</Text>
-          <Pressable style={styles.button} onPress={() => loadState()}>
+          <Pressable style={styles.button} onPress={retry}>
             <Text style={styles.buttonText}>Try again</Text>
           </Pressable>
         </View>
@@ -80,6 +56,7 @@ export default function App() {
             )}
           </View>
 
+          {offline && <Text style={styles.offline}>No connection to the server. Showing the last list.</Text>}
           <Text style={styles.section}>
             {me ? `Your orders, in route order (${orders.length})` : `All orders (${orders.length})`}
           </Text>
@@ -99,7 +76,7 @@ export default function App() {
               )
             }
             ListEmptyComponent={<Text style={styles.empty}>{me ? 'You have no orders yet.' : 'No orders.'}</Text>}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadState({ refresh: true })} />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
           />
         </>
       )}
@@ -122,6 +99,7 @@ const styles = StyleSheet.create({
   link: { fontSize: 14, color: '#2563eb', fontWeight: '600' },
   section: { marginTop: 24, marginBottom: 4, fontSize: 13, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' },
   list: { flex: 1 },
+  offline: { marginTop: 16, padding: 8, borderRadius: 8, backgroundColor: '#fef3c7', color: '#92400e', fontSize: 13, textAlign: 'center' },
   empty: { paddingVertical: 24, textAlign: 'center', color: '#64748b', fontSize: 15 },
   muted: { fontSize: 14, color: '#64748b', textAlign: 'center' },
   button: { alignSelf: 'center', backgroundColor: '#2563eb', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
