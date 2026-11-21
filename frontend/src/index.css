@@ -8,3 +8,11 @@
     background: var(--color-slate-50);
   }
 }
+
+/* Scrolls with the wheel, touch or keys, but draws no scroll bar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

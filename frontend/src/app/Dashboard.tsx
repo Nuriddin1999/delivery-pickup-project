@@ -76,7 +76,7 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
 
         <aside className="flex w-110 flex-col border-l border-slate-200 bg-white max-[900px]:w-full max-[900px]:border-l-0">
           <SideTabs active={route.tab} />
-          <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+          <div className="no-scrollbar flex flex-1 flex-col gap-2.5 overflow-y-auto p-3">
             {autoAssign.result && <AutoAssignReport result={autoAssign.result} couriers={state.couriers} onClose={autoAssign.close} onSelectOrder={route.selectOrder} />}
             <SidePanelRoutes
               state={state}
