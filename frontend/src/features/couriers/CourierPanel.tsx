@@ -20,7 +20,7 @@ export function CourierPanel({ state, colors, focusedId, showShorter, onFocus, o
   const couriers = [...state.couriers].sort((a, b) => Number(b.active) - Number(a.active));
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="grid grid-cols-[1fr_72px_96px_68px] gap-3 px-4 text-xs text-slate-500">
+      <div className="grid grid-cols-[1fr_60px_88px_64px] gap-2.5 px-4 text-xs text-slate-500">
         <span>Courier</span>
         <span>Parcels</span>
         <span>Weight, kg</span>

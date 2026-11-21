@@ -39,7 +39,7 @@ export function CourierCard({ courier: c, color, open, showShorter, onToggle, on
     <Card className={cn("gap-1 border-l-[5px] py-2", open && "ring-2 ring-blue-200", !c.active && "opacity-60")} style={{ borderLeftColor: color }}>
       <button
         type="button"
-        className="grid cursor-pointer grid-cols-[1fr_72px_96px_68px] items-center gap-3 text-left"
+        className="grid cursor-pointer grid-cols-[1fr_60px_88px_64px] items-center gap-2.5 text-left"
         onClick={onToggle}
         aria-expanded={open}
         title={open ? "Close" : "Show stops here and the route on the map"}
