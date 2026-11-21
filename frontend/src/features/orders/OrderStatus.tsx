@@ -23,6 +23,6 @@ export function OrderStatus({ order, courier, unassignable }: Props) {
         )}
       </>
     );
-  if (unassignable) return <Tag tone="bad">no courier fits</Tag>;
+  if (unassignable) return <Tag tone="warn">no courier fits</Tag>;
   return <span className={mutedText}>free</span>;
 }

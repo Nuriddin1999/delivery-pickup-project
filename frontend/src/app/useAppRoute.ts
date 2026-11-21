@@ -7,7 +7,7 @@ import { paths, patterns, type Tab } from "./routes";
  */
 export function useAppRoute() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const isAdd = useMatch(patterns.newCourier) !== null;
   const orderMatch = useMatch(patterns.order);
   const courierMatch = useMatch(patterns.courier);
@@ -18,7 +18,11 @@ export function useAppRoute() {
     tab,
     selectedOrderId: orderMatch?.params.orderId ?? null,
     focusedCourierId: isAdd ? null : (courierMatch?.params.courierId ?? null),
-    selectOrder: (id: string | null) => navigate(id ? paths.order(id) : paths.orders),
+    // Staying on the orders tab keeps the list's filter, which lives in the query string.
+    selectOrder: (id: string | null) => {
+      const keep = pathname.startsWith(paths.orders) ? search : "";
+      navigate((id ? paths.order(id) : paths.orders) + keep);
+    },
     focusCourier: (id: string | null) => navigate(id ? paths.courier(id) : paths.couriers),
   };
 }
