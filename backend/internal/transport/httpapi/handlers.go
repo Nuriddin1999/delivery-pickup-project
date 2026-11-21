@@ -72,6 +72,16 @@ func (h *handlers) unassignOrder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toOrderResponse(o, false))
 }
 
+func (h *handlers) getCandidates(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	cands, err := h.dispatcher.OrderCandidates(id)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toCandidatesResponse(id, cands))
+}
+
 func (h *handlers) autoAssign(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toAutoAssignResponse(h.dispatcher.AutoAssign()))
 }

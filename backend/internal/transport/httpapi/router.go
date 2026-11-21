@@ -18,6 +18,7 @@ type Dispatcher interface {
 	AssignOrder(orderID, courierID string) (domain.Order, error)
 	UnassignOrder(orderID string) (domain.Order, error)
 	AutoAssign() usecase.AutoAssignResult
+	OrderCandidates(orderID string) ([]domain.Candidate, error)
 }
 
 type handlers struct {
@@ -35,6 +36,7 @@ func NewRouter(d Dispatcher, shapes []byte, staticDir string) http.Handler {
 	mux.HandleFunc("GET /api/regions.geojson", h.getShapes)
 	mux.HandleFunc("POST /api/couriers", h.addCourier)
 	mux.HandleFunc("PUT /api/couriers/{id}/regions", h.setRegions)
+	mux.HandleFunc("GET /api/orders/{id}/candidates", h.getCandidates)
 	mux.HandleFunc("PUT /api/orders/{id}/courier", h.assignOrder)
 	mux.HandleFunc("DELETE /api/orders/{id}/courier", h.unassignOrder)
 	mux.HandleFunc("POST /api/auto-assign", h.autoAssign)
