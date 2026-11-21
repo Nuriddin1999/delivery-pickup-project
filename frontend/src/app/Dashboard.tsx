@@ -64,6 +64,14 @@ export function Dashboard({ state, shapes, loadError }: Props) {
   const candidates = useCandidates(route.selectedOrderId).data;
   const allowedCourierIds = route.selectedOrderId && candidates?.order_id === route.selectedOrderId ? new Set(candidates.candidates.filter((c) => c.allowed).map((c) => c.courier_id)) : null;
 
+  // An order picked in the table pulses on the map, the same way a courier's start does,
+  // in its courier's colour (teal while free). No dot and no label: the pin and its id are already there.
+  const selectFromTable = (id: string) => {
+    route.selectOrder(id);
+    const o = state.orders.find((x) => x.id === id);
+    if (o?.location) pointHighlight.show(o.location, o.courier_id ? colors[o.courier_id] : "#2f7d71", "", false);
+  };
+
   const pickRegionCourier = (id: string): boolean => {
     if (!regions.pick(id)) return false;
     // On the couriers tab, also show that courier's route.
@@ -140,7 +148,7 @@ export function Dashboard({ state, shapes, loadError }: Props) {
               colors={colors}
               list={orderList}
               selectedId={route.selectedOrderId}
-              onSelect={route.selectOrder}
+              onSelect={selectFromTable}
               expanded={split.tableExpanded}
               onExpand={split.expandTable}
               onShowMap={split.showMap}

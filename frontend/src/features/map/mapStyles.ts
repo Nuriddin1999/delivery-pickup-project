@@ -129,14 +129,14 @@ export function startIcon(color: string, name: string, emphasis: StartEmphasis =
   });
 }
 
-/** Rings that grow and fade around a point, in the given colour. */
-export function pulseIcon(color: string) {
+/** Rings that grow and fade around a point, in the given colour, with or without a dot in the middle. */
+export function pulseIcon(color: string, dot = true) {
   return L.divIcon({
     ...iconBase,
     html: `<div class="relative size-14" style="--c:${color}">
       <span class="absolute inset-0 animate-ping rounded-full bg-(--c) opacity-50"></span>
       <span class="absolute inset-0 animate-ping rounded-full border-4 border-(--c) [animation-delay:500ms]"></span>
-      <span class="absolute inset-4.5 rounded-full border-3 border-white bg-(--c) shadow-[0_0_0_3px_rgba(0,0,0,0.25)]"></span>
+      ${dot ? '<span class="absolute inset-4.5 rounded-full border-3 border-white bg-(--c) shadow-[0_0_0_3px_rgba(0,0,0,0.25)]"></span>' : ""}
     </div>`,
     iconSize: [56, 56],
     iconAnchor: [28, 28],

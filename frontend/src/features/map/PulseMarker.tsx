@@ -15,10 +15,12 @@ export function PulseMarker({ highlight }: { highlight: PointHighlight }) {
   }, [map, lat, lng, highlight.id]);
 
   return (
-    <Marker position={[lat, lng]} icon={pulseIcon(highlight.color)} interactive={false} zIndexOffset={2000}>
-      <Tooltip permanent direction="top" offset={[0, -26]}>
-        {highlight.label}
-      </Tooltip>
+    <Marker position={[lat, lng]} icon={pulseIcon(highlight.color, highlight.dot)} interactive={false} zIndexOffset={highlight.dot ? 2000 : -100}>
+      {highlight.label && (
+        <Tooltip permanent direction="top" offset={[0, -26]}>
+          {highlight.label}
+        </Tooltip>
+      )}
     </Marker>
   );
 }
