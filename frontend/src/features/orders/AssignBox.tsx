@@ -45,7 +45,6 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
   const nearestId = candidates?.find((c) => c.nearest)?.courier_id ?? null;
   const chosenId = picked ?? nearestId;
   const chosen = chosenId ? couriersById[chosenId] : undefined;
-  const chosenAllowed = !!candidates?.find((c) => c.courier_id === chosenId)?.allowed;
 
   const giveTo = (courierId: string) => {
     const target = couriersById[courierId];
@@ -111,10 +110,10 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
             onClick={() => chosenId && giveTo(chosenId)}
             className={cn(
               "h-13 w-full cursor-pointer rounded-xl text-[18px] font-semibold shadow-sm transition-colors disabled:cursor-default disabled:opacity-50",
-              chosenAllowed || !chosen ? "bg-brand-600 text-white hover:bg-brand-700" : "border-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+              "bg-brand-600 text-white hover:bg-brand-700 disabled:hover:bg-brand-600",
             )}
           >
-            {actions.busy ? "Saving…" : chosen ? (chosenAllowed ? `${verb} to ${chosen.name}` : `Try ${chosen.name} anyway`) : "Choose a courier"}
+            {actions.busy ? "Saving…" : chosen ? `${verb} to ${chosen.name}` : candidates ? "Nobody can take it" : "Choose a courier"}
           </button>
 
           {current && (

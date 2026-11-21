@@ -169,7 +169,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 
 | # | Change | Serves | Why, in one line |
 | --- | --- | --- | --- |
-| 1 | Courier cards, nearest chosen, one big button | steps | most orders become one click, and the reason for every refusal is visible before clicking |
+| 1 | Courier cards, nearest chosen, one big button, the others disabled | steps | most orders become one click, and the reason for every refusal is visible before clicking |
 | 2 | Next free order opens by itself | steps | working through the list needs no searching |
 | 3 | Undo | steps | one-click assigning must have a one-click way back |
 | 4 | Map over the order table, Order / Couriers on the right | layout | orders, map and the open order are on screen together |
@@ -188,7 +188,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 
 ### Fewer steps
 
-1. **The courier select became a card per courier, with the nearest one already chosen.** It is the biggest change. Under "Who gets it" every courier has a card. A card for an allowed courier shows the load they would have after the order (parcels and kg) and the km the order adds to their route. The nearest one by the auto-assign rule (least km added) is on top, marked "nearest" and chosen at first. A big button under the cards says what will happen: "Give to Bekzod". For most orders the dispatcher only presses it. Couriers who cannot take the order are greyed, with the server's reason on the card. They can still be chosen, and the button then says "Try Kamola anyway", so the server refuses in its own words, as before.
+1. **The courier select became a card per courier, with the nearest one already chosen.** It is the biggest change. Under "Who gets it" every courier has a card. A card for an allowed courier shows the load they would have after the order (parcels and kg) and the km the order adds to their route. The nearest one by the auto-assign rule (least km added) is on top, marked "nearest" and chosen at first. A big button under the cards says what will happen: "Give to Bekzod". For most orders the dispatcher only presses it. Couriers who cannot take the order are disabled: greyed out and not selectable, with the server's reason on the card (for example "Kamola does not work in Bektemir"), so the dispatcher sees why before trying. When nobody can take the order, the button is disabled and says "Nobody can take it". The server still checks every assignment: a request sent by hand for a refused courier gets the same refusal (see the HTTP tests).
    - The cards come from a new endpoint, `GET /api/orders/{id}/candidates`. The server works it out with the same `CanTake` and the same km function as auto-assign. Before, the page repeated the rules in TypeScript (`quickCheck`) to show its hints. That copy is gone, so a hint can no longer disagree with the server. Auto-assign now picks the courier marked "nearest" here, so the two always agree (`domain.Candidates`).
 2. **The next free order opens by itself.** When an order gets its first courier, the next free order that someone can take opens, further down the table the dispatcher is looking at (so a region filter is respected). A checkbox turns this off, for anyone who prefers to work from the map. The choice is remembered in the browser. Moving an order or taking it off does not jump.
 3. **Undo.** The message after assign, move or take off has an Undo button for 8 seconds. With one-click assigning, a wrong click is more likely, and undo has to be just as cheap. Undo is an ordinary request, so the server checks it again. If the old courier filled up in the meantime, the message says so.
@@ -219,7 +219,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 - **Region editing** stays as it was (a select, then clicks on the map). It already worked in a few clicks, and the original task asked for exactly this select.
 - **Russian texts from the mockups:** the project, its server messages and its tests are in English, and mixing languages would be worse than either.
 - **A dark theme:** it does not help any of the three goals.
-- **Frontend tests**, for the same reason as before: the rules live on the server. The new endpoint has Go tests. I drove the new flow in a headless browser: opening o23 (the oldest) shows Aziz chosen, "Give to Aziz" gives it to him and opens o01, Undo takes it back, and choosing Kamola for o12 and pressing "Try Kamola anyway" shows "Kamola does not work in Bektemir". I also measured the split (the table expands and the map comes back in 0.3 s; while dragging the bar is 0 px from the pointer) and the phone layout at 360 and 320 px.
+- **Frontend tests**, for the same reason as before: the rules live on the server. The new endpoint has Go tests. I drove the new flow in a headless browser: opening o23 (the oldest) shows Aziz chosen, "Give to Aziz" gives it to him and opens o01, Undo takes it back, and on o12 every courier is disabled with their reason, Kamola's being "Kamola does not work in Bektemir". I also measured the split (the table expands and the map comes back in 0.3 s; while dragging the bar is 0 px from the pointer) and the phone layout at 360 and 320 px.
 
 ## What I skipped and why
 

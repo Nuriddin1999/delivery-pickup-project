@@ -17,9 +17,8 @@ interface Props {
 /**
  * "Who gets it": one card per courier, as the server checked them. Allowed
  * couriers show their load after the order and the km it adds; the nearest
- * is marked and chosen at first. Refused couriers are greyed with the
- * server's reason, but can still be chosen, so the server explains a
- * refusal in its own words.
+ * is marked and chosen at first. Couriers who cannot take the order are
+ * disabled: greyed, not selectable, with the server's reason on the card.
  */
 export function CandidatePicker({ order, candidates, couriersById, colors, chosenId, onChoose }: Props) {
   const allowed = candidates.filter((c) => c.allowed);
@@ -34,18 +33,25 @@ export function CandidatePicker({ order, candidates, couriersById, colors, chose
         return (
           <label
             key={c.id}
+            aria-disabled={!cand.allowed}
+            title={cand.allowed ? undefined : cand.reason}
             className={cn(
-              "flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border-2 px-3 py-2.5 transition-colors",
+              "flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border-2 px-3 py-2.5 transition-colors",
               cand.allowed
                 ? chosen
-                  ? "border-brand-500 bg-brand-50"
-                  : "border-slate-200 bg-white hover:border-brand-300"
-                : chosen
-                  ? "border-slate-400 bg-slate-100"
-                  : "border-transparent bg-slate-100/80 hover:border-slate-300",
+                  ? "cursor-pointer border-brand-500 bg-brand-50"
+                  : "cursor-pointer border-slate-200 bg-white hover:border-brand-300"
+                : "cursor-not-allowed border-transparent bg-slate-100/80",
             )}
           >
-            <input type="radio" name="courier" className="size-4 accent-brand-600" checked={chosen} onChange={() => onChoose(c.id)} />
+            <input
+              type="radio"
+              name="courier"
+              className="size-4 accent-brand-600 disabled:cursor-not-allowed"
+              checked={chosen}
+              disabled={!cand.allowed}
+              onChange={() => onChoose(c.id)}
+            />
             <span className="flex min-w-0 flex-1 flex-col">
               <span className={cn("flex items-center gap-1.5 text-[16px] font-bold", !cand.allowed && "text-slate-400")}>
                 <Swatch color={colors[c.id]} />
