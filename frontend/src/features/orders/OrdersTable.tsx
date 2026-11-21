@@ -1,6 +1,7 @@
 import type { DispatchState } from "@/api/types";
+import { Button } from "@/shared/ui/Button";
 import { Checkbox } from "@/shared/ui/Checkbox";
-import { hintText } from "@/shared/ui/styles";
+import { cn, hintText } from "@/shared/ui/styles";
 import { OrderFilters } from "./OrderFilters";
 import { OrderRow } from "./OrderRow";
 import type { OrderList } from "./useOrderList";
@@ -11,12 +12,16 @@ interface Props {
   list: OrderList;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** the table fills the column and the map is hidden */
+  expanded: boolean;
+  onExpand: () => void;
+  onShowMap: () => void;
 }
 
 const head = "sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-[13px] font-medium text-slate-600";
 
 /** The order table under the map: filters, then one row per order, oldest first. */
-export function OrdersTable({ state, colors, list, selectedId, onSelect }: Props) {
+export function OrdersTable({ state, colors, list, selectedId, onSelect, expanded, onExpand, onShowMap }: Props) {
   const couriersById = Object.fromEntries(state.couriers.map((c) => [c.id, c]));
   const unassignable = new Set(state.unassignable.map((u) => u.order_id));
 
@@ -24,9 +29,21 @@ export function OrdersTable({ state, colors, list, selectedId, onSelect }: Props
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-2 border-b border-slate-100 px-3 pt-3 pb-2">
         <OrderFilters query={list.query} counts={list.counts} regions={state.regions} onChange={list.setQuery} />
-        <Checkbox checked={list.queue} onChange={list.setQueue}>
-          <span className="text-[13px] text-slate-600">Open the next free order after giving one out</span>
-        </Checkbox>
+        <div className="flex items-center justify-between gap-2">
+          <Checkbox checked={list.queue} onChange={list.setQueue}>
+            <span className="text-[13px] text-slate-600">Open the next free order after giving one out</span>
+          </Checkbox>
+          <Button
+            className="flex items-center gap-1.5 py-1 text-[13px]"
+            onClick={expanded ? onShowMap : onExpand}
+            title={expanded ? "Bring the map back" : "Give the table the whole height; the map hides"}
+          >
+            <span aria-hidden className={cn("inline-block transition-transform duration-300", expanded && "rotate-180")}>
+              ⇡
+            </span>
+            {expanded ? "Show map" : "Expand table"}
+          </Button>
+        </div>
       </div>
 
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">

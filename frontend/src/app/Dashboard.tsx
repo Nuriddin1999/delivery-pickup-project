@@ -16,10 +16,12 @@ import { useRegionEditor } from "@/features/regions/useRegionEditor";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useToast } from "@/hooks/useToast";
 import { Toast } from "@/shared/ui/Toast";
+import { cn } from "@/shared/ui/styles";
 import { Header } from "./Header";
 import { SidePanelRoutes } from "./SidePanelRoutes";
 import { SideTabs } from "./SideTabs";
 import { useAppRoute } from "./useAppRoute";
+import { useMapSplit } from "./useMapSplit";
 
 interface Props {
   state: DispatchState;
@@ -43,6 +45,9 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
   const orderList = useOrderList(state, route.selectedOrderId, route.selectOrder);
   useHotkeys({ u: undo ?? undefined });
   const pointHighlight = usePointHighlight();
+  const split = useMapSplit();
+  // Height changes slide, except while the bar is dragged: then the map follows the pointer.
+  const slide = !split.dragging && "duration-300 ease-out motion-reduce:transition-none";
   const [showShorter, setShowShorter] = useState(false);
   const [newStart, setNewStart] = useState<StartFields>(emptyStart);
   const colors = useMemo(() => courierColors(state.couriers), [state.couriers]);
@@ -64,8 +69,15 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
       <Header updatedAt={updatedAt} autoAssignBusy={autoAssign.busy} onAutoAssign={autoAssign.run} search={route.search} />
 
       <main className="flex min-h-0 flex-1 gap-3 p-3 max-[1000px]:flex-col max-[1000px]:overflow-y-auto">
-        <section className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className={`${panel} relative min-h-80 flex-3`}>
+        <section ref={split.columnRef} className="flex min-h-0 min-w-0 flex-1 flex-col max-[1000px]:h-[85vh] max-[1000px]:flex-none">
+          {/* The map's share of the column; 0 when the table is expanded. The bar below takes 12px. */}
+          <div
+            className={cn("flex-none overflow-hidden transition-[height,opacity]", slide, split.tableExpanded && "opacity-0")}
+            style={{ height: split.tableExpanded ? 0 : `calc(${split.mapShare * 100}% - 6px)` }}
+            aria-hidden={split.tableExpanded}
+            inert={split.tableExpanded}
+          >
+          <div className={`${panel} relative h-full`}>
             <MapView
               state={state}
               shapes={shapes}
@@ -90,9 +102,40 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
               <Legend />
             </div>
           </div>
+          </div>
 
-          <div className={`${panel} flex min-h-65 flex-2 flex-col`}>
-            <OrdersTable state={state} colors={colors} list={orderList} selectedId={route.selectedOrderId} onSelect={route.selectOrder} />
+          <div
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize the map and the order table"
+            aria-valuemin={20}
+            aria-valuemax={85}
+            aria-valuenow={Math.round(split.share * 100)}
+            tabIndex={split.tableExpanded ? -1 : 0}
+            title="Drag to resize · double-click to reset"
+            onPointerDown={split.onPointerDown}
+            onKeyDown={split.onKeyDown}
+            onDoubleClick={split.reset}
+            className={cn(
+              "group flex flex-none cursor-row-resize touch-none items-center justify-center overflow-hidden outline-none transition-[height,opacity]",
+              slide,
+              split.tableExpanded ? "pointer-events-none h-0 opacity-0" : "h-3",
+            )}
+          >
+            <span className={cn("h-1.5 w-14 rounded-full transition-colors group-hover:bg-brand-500 group-focus-visible:bg-brand-500", split.dragging ? "bg-brand-600" : "bg-slate-300")} />
+          </div>
+
+          <div className={`${panel} flex min-h-0 flex-1 flex-col`}>
+            <OrdersTable
+              state={state}
+              colors={colors}
+              list={orderList}
+              selectedId={route.selectedOrderId}
+              onSelect={route.selectOrder}
+              expanded={split.tableExpanded}
+              onExpand={split.expandTable}
+              onShowMap={split.showMap}
+            />
           </div>
         </section>
 

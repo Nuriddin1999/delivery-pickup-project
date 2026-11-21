@@ -2,6 +2,7 @@ import { MapContainer, Marker, Polyline, ScaleControl, TileLayer, Tooltip } from
 import type { DispatchState, Point, Route } from "@/api/types";
 import { env } from "@/config/env";
 import { cn } from "@/shared/ui/styles";
+import { FitToContainer } from "./FitToContainer";
 import { KeepInView } from "./KeepInView";
 import { hubIcon, mapModeClass, newStartIcon, regionStyle, startIcon, type MapMode } from "./mapStyles";
 import { MapClickCatcher } from "./MapClickCatcher";
@@ -48,6 +49,7 @@ export function MapView(props: Props) {
       <ScaleControl position="bottomright" imperial={false} />
       <MapClickCatcher enabled={mode === "pickStart"} onPick={props.onPickPoint} />
       <KeepInView point={selected?.location ?? null} />
+      <FitToContainer />
 
       {props.shapes && <RegionsLayer shapes={props.shapes} style={(name) => regionStyle(state.regions.indexOf(name), name, mode, props.draftRegions, props.draftColor)} onClick={onRegionClick} />}
 
