@@ -3,13 +3,16 @@ import type { DispatchState } from "@/api/types";
 import { courierColors } from "@/domain/couriers";
 import { emptyStart, readStart, startFromPoint, type StartFields } from "@/domain/courierForm";
 import { AutoAssignReport } from "@/features/auto-assign/AutoAssignReport";
+import { useAutoAssign } from "@/features/auto-assign/useAutoAssign";
+import { Legend } from "@/features/map/Legend";
 import { MapView } from "@/features/map/MapView";
 import type { MapMode } from "@/features/map/mapStyles";
 import { usePointHighlight } from "@/features/map/usePointHighlight";
+import { OrdersTable } from "@/features/orders/OrdersTable";
+import { useCandidates } from "@/features/orders/useCandidates";
+import { useOrderList } from "@/features/orders/useOrderList";
 import { RegionEditor } from "@/features/regions/RegionEditor";
 import { useRegionEditor } from "@/features/regions/useRegionEditor";
-import { useAutoAssign } from "@/features/auto-assign/useAutoAssign";
-import { useCandidates } from "@/features/orders/useCandidates";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useToast } from "@/hooks/useToast";
 import { Toast } from "@/shared/ui/Toast";
@@ -25,12 +28,19 @@ interface Props {
   updatedAt: number;
 }
 
-/** The page layout: header, map with its region toolbar, and the side panel. */
+const panel = "overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm";
+
+/**
+ * The page: a dark header; on the left the map (region bar and legend on
+ * top of it) with the order table under it; on the right the open order or
+ * the couriers.
+ */
 export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
   const route = useAppRoute();
   const { toast, showToast, undo } = useToast();
   const regions = useRegionEditor(state.couriers);
   const autoAssign = useAutoAssign((message) => showToast(message, undefined, "error"));
+  const orderList = useOrderList(state, route.selectedOrderId, route.selectOrder);
   useHotkeys({ u: undo ?? undefined });
   const pointHighlight = usePointHighlight();
   const [showShorter, setShowShorter] = useState(false);
@@ -40,7 +50,7 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
   const isAdding = route.tab === "add";
   const mapMode: MapMode = isAdding ? "pickStart" : regions.courier ? "regions" : "none";
   const focused = state.couriers.find((c) => c.id === route.focusedCourierId);
-  // Same query as the order box, so this costs no extra request.
+  // Same query as the order panel, so this costs no extra request.
   const candidates = useCandidates(route.selectedOrderId).data;
   const allowedCourierIds = route.selectedOrderId && candidates?.order_id === route.selectedOrderId ? new Set(candidates.candidates.filter((c) => c.allowed).map((c) => c.courier_id)) : null;
 
@@ -51,37 +61,50 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
 
   return (
     <div className="flex h-screen flex-col">
-      <Header state={state} updatedAt={updatedAt} autoAssignBusy={autoAssign.busy} onAutoAssign={autoAssign.run} />
+      <Header updatedAt={updatedAt} autoAssignBusy={autoAssign.busy} onAutoAssign={autoAssign.run} search={route.search} />
 
-      <main className="flex min-h-0 flex-1 max-[900px]:flex-col">
-        <section className="flex min-w-0 flex-1 flex-col max-[900px]:min-h-[55vh]">
-          <RegionEditor editor={regions} couriers={state.couriers} allRegions={state.regions} colors={colors} disabled={isAdding} onPick={pickRegionCourier} />
-          <MapView
-            state={state}
-            shapes={shapes}
-            colors={colors}
-            mode={mapMode}
-            draftRegions={regions.draft}
-            draftColor={regions.courier ? colors[regions.courier.id] : "#2563eb"}
-            onToggleRegion={regions.toggle}
-            onPickPoint={(p) => setNewStart(startFromPoint(p))}
-            selectedOrderId={route.selectedOrderId}
-            onSelectOrder={route.selectOrder}
-            route={focused ? { route: showShorter ? focused.better_route : focused.route, color: colors[focused.id] } : null}
-            startPreview={isAdding ? readStart(newStart) : null}
-            highlight={pointHighlight.highlight}
-            allowedCourierIds={allowedCourierIds}
-          />
+      <main className="flex min-h-0 flex-1 gap-3 p-3 max-[1000px]:flex-col max-[1000px]:overflow-y-auto">
+        <section className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className={`${panel} relative min-h-80 flex-3`}>
+            <MapView
+              state={state}
+              shapes={shapes}
+              colors={colors}
+              mode={mapMode}
+              draftRegions={regions.draft}
+              draftColor={regions.courier ? colors[regions.courier.id] : "#2f7d71"}
+              onToggleRegion={regions.toggle}
+              onPickPoint={(p) => setNewStart(startFromPoint(p))}
+              selectedOrderId={route.selectedOrderId}
+              onSelectOrder={route.selectOrder}
+              route={focused ? { route: showShorter ? focused.better_route : focused.route, color: colors[focused.id] } : null}
+              startPreview={isAdding ? readStart(newStart) : null}
+              highlight={pointHighlight.highlight}
+              allowedCourierIds={allowedCourierIds}
+            />
+            {/* Leaflet's own controls sit at z-index 1000; these float just above the tiles too. */}
+            <div className="pointer-events-none absolute top-3 right-3 left-14 z-1000 flex justify-end">
+              <RegionEditor editor={regions} couriers={state.couriers} allRegions={state.regions} colors={colors} disabled={isAdding} onPick={pickRegionCourier} />
+            </div>
+            <div className="absolute bottom-6 left-3 z-1000 max-[700px]:hidden">
+              <Legend />
+            </div>
+          </div>
+
+          <div className={`${panel} flex min-h-65 flex-2 flex-col`}>
+            <OrdersTable state={state} colors={colors} list={orderList} selectedId={route.selectedOrderId} onSelect={route.selectOrder} />
+          </div>
         </section>
 
-        <aside className="flex w-110 flex-col border-l border-slate-200 bg-white max-[900px]:w-full max-[900px]:border-l-0">
-          <SideTabs active={route.tab} />
-          <div className="no-scrollbar flex flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+        <aside className={`${panel} flex w-110 flex-none flex-col max-[1000px]:w-full`}>
+          {!isAdding && <SideTabs active={route.tab} search={route.search} />}
+          <div className="no-scrollbar flex flex-1 flex-col gap-3 overflow-y-auto p-4">
             {autoAssign.result && <AutoAssignReport result={autoAssign.result} couriers={state.couriers} onClose={autoAssign.close} onSelectOrder={route.selectOrder} />}
             <SidePanelRoutes
               state={state}
               colors={colors}
               route={route}
+              orderList={orderList}
               showShorter={showShorter}
               onShowShorter={setShowShorter}
               newStart={newStart}

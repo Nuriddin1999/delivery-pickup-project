@@ -1,4 +1,4 @@
-import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from "react-leaflet";
+import { MapContainer, Marker, Polyline, ScaleControl, TileLayer, Tooltip } from "react-leaflet";
 import type { DispatchState, Point, Route } from "@/api/types";
 import { env } from "@/config/env";
 import { cn } from "@/shared/ui/styles";
@@ -43,19 +43,20 @@ export function MapView(props: Props) {
   };
 
   return (
-    <MapContainer center={[state.hub.lat, state.hub.lng]} zoom={env.mapZoom} className={cn("min-h-0 flex-1", mapModeClass[mode])} doubleClickZoom={mode === "none"}>
+    <MapContainer center={[state.hub.lat, state.hub.lng]} zoom={env.mapZoom} className={cn("h-full w-full", mapModeClass[mode])} doubleClickZoom={mode === "none"}>
       <TileLayer attribution={env.tileAttribution} url={env.tileUrl} />
+      <ScaleControl position="bottomright" imperial={false} />
       <MapClickCatcher enabled={mode === "pickStart"} onPick={props.onPickPoint} />
       <KeepInView point={selected?.location ?? null} />
 
-      {props.shapes && <RegionsLayer shapes={props.shapes} style={(name) => regionStyle(name, mode, props.draftRegions, props.draftColor)} onClick={onRegionClick} />}
+      {props.shapes && <RegionsLayer shapes={props.shapes} style={(name) => regionStyle(state.regions.indexOf(name), name, mode, props.draftRegions, props.draftColor)} onClick={onRegionClick} />}
 
       {props.route && props.route.route.stops.length > 1 && (
         <Polyline positions={props.route.route.stops.map((s) => [s.point.lat, s.point.lng] as [number, number])} pathOptions={{ color: props.route.color, weight: 4, opacity: 0.8, dashArray: "8 6" }} />
       )}
 
       <Marker position={[state.hub.lat, state.hub.lng]} icon={hubIcon} zIndexOffset={1000}>
-        <Tooltip direction="top" offset={[0, -14]}>
+        <Tooltip direction="top" offset={[0, -20]}>
           {state.hub.name}: every parcel passes here
         </Tooltip>
       </Marker>

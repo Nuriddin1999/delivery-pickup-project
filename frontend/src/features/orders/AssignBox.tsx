@@ -1,15 +1,14 @@
+import { useState } from "react";
 import type { CourierView, DispatchState, Order } from "@/api/types";
 import { errorMessage } from "@/api/client";
 import { dispatchApi } from "@/api/dispatchApi";
-import { kindLabel } from "@/domain/format";
 import { isBroken } from "@/domain/orders";
 import { useHotkeys, type Hotkeys } from "@/hooks/useHotkeys";
 import type { Undo } from "@/hooks/useToast";
 import { Alert } from "@/shared/ui/Alert";
 import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
-import { CardHeader } from "@/shared/ui/CardHeader";
-import { CandidateList } from "./CandidateList";
+import { cn, hintText } from "@/shared/ui/styles";
+import { CandidatePicker } from "./CandidatePicker";
 import { OrderDetails } from "./OrderDetails";
 import { useCandidates } from "./useCandidates";
 import { useOrderActions } from "./useOrderActions";
@@ -31,13 +30,24 @@ interface Props {
   onChanged: (change: OrderChange) => void;
 }
 
-/** The selected order: its details, the couriers to give it to, and take off. */
+/**
+ * The open order: what it is, who could get it, and one big button. The
+ * nearest allowed courier is chosen at first, so giving out an order is a
+ * single click on the button (or Enter); keys 1–9 give it straight to that
+ * allowed courier.
+ */
 export function AssignBox({ order, state, couriersById, colors, onClose, onChanged }: Props) {
   const current = order.courier_id ? couriersById[order.courier_id] : undefined;
   const reason = state.unassignable.find((u) => u.order_id === order.id)?.reason;
   const candidatesQuery = useCandidates(order.id);
   const candidates = candidatesQuery.data?.candidates;
   const actions = useOrderActions(order.id);
+  const [picked, setPicked] = useState<string | null>(null);
+
+  const nearestId = candidates?.find((c) => c.nearest)?.courier_id ?? null;
+  const chosenId = picked ?? nearestId;
+  const chosen = chosenId ? couriersById[chosenId] : undefined;
+  const chosenAllowed = !!candidates?.find((c) => c.courier_id === chosenId)?.allowed;
 
   const giveTo = (courierId: string) => {
     const target = couriersById[courierId];
@@ -56,43 +66,76 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
     actions.unassign(() => onChanged({ message: `${order.id} taken off ${current.name}`, undo: () => dispatchApi.assign(order.id, current.id), newlyAssigned: false }));
   };
 
-  // Keys 1–9 give the order to the allowed courier with that number.
-  const keys: Hotkeys = { Escape: onClose };
+  // Enter gives the order to the chosen courier; 1–9 straight to that allowed courier.
+  const keys: Hotkeys = { Escape: onClose, Enter: chosenId ? () => giveTo(chosenId) : undefined };
   candidates
     ?.filter((c) => c.allowed)
     .slice(0, 9)
     .forEach((c, i) => (keys[String(i + 1)] = () => giveTo(c.courier_id)));
   useHotkeys(keys);
 
+  const verb = current ? "Move" : "Give";
+
   return (
-    <Card className="border-blue-200 shadow-sm">
-      <CardHeader title={`Order ${order.id} · ${kindLabel(order.type)}`} onClose={onClose} />
-      <OrderDetails order={order} holder={current} />
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="m-0 text-[28px] leading-tight font-bold">Order {order.id}</h2>
+        <button type="button" className="cursor-pointer rounded-lg px-2 py-1 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" onClick={onClose} title="Close (Esc)">
+          ×
+        </button>
+      </div>
+
+      <OrderDetails order={order} holder={current} holderColor={current ? colors[current.id] : undefined} />
       {!isBroken(order) && reason && !current && <Alert tone="warn">No courier can take it now: {reason}</Alert>}
 
       {!isBroken(order) && (
         <>
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-[13px] font-semibold text-slate-700">{current ? "Move to" : "Give to"}</span>
-            {current && (
-              <Button disabled={actions.busy} onClick={takeOff}>
-                Take off {current.name}
+          <div className="border-t border-slate-200" />
+          <h3 className="m-0 text-[18px] font-semibold">{current ? "Move to" : "Who gets it"}</h3>
+
+          {candidatesQuery.isError && !candidates ? (
+            <Alert tone="error">
+              Could not load the couriers for this order: {errorMessage(candidatesQuery.error)}{" "}
+              <Button variant="link" onClick={() => void candidatesQuery.refetch()}>
+                Try again
               </Button>
+            </Alert>
+          ) : !candidates ? (
+            <p className={hintText}>Checking couriers…</p>
+          ) : (
+            <CandidatePicker
+              order={order}
+              candidates={candidates}
+              couriersById={couriersById}
+              colors={colors}
+              chosenId={chosenId}
+              onChoose={(id) => {
+                setPicked(id);
+              }}
+            />
+          )}
+
+          <button
+            type="button"
+            disabled={!chosen || actions.busy}
+            onClick={() => chosenId && giveTo(chosenId)}
+            className={cn(
+              "h-13 w-full cursor-pointer rounded-xl text-[18px] font-semibold shadow-sm transition-colors disabled:cursor-default disabled:opacity-50",
+              chosenAllowed || !chosen ? "bg-brand-600 text-white hover:bg-brand-700" : "border-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
             )}
-          </div>
-          <CandidateList
-            order={order}
-            candidates={candidates}
-            couriersById={couriersById}
-            colors={colors}
-            busy={actions.busy}
-            loadError={candidatesQuery.isError && !candidates ? errorMessage(candidatesQuery.error) : null}
-            onRetry={() => void candidatesQuery.refetch()}
-            onPick={giveTo}
-          />
+            title="Enter"
+          >
+            {actions.busy ? "Saving…" : chosen ? (chosenAllowed ? `${verb} to ${chosen.name}` : `Try ${chosen.name} anyway`) : "Choose a courier"}
+          </button>
+
+          {current && (
+            <Button disabled={actions.busy} onClick={takeOff}>
+              Take off {current.name}
+            </Button>
+          )}
         </>
       )}
       {actions.error && <Alert tone="error">{actions.error}</Alert>}
-    </Card>
+    </div>
   );
 }

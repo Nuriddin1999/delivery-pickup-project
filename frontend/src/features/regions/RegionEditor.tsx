@@ -15,13 +15,13 @@ interface Props {
   onPick: (courierId: string) => void;
 }
 
-/** Toolbar above the map: pick a courier, click regions, save. */
+/** Floating bar on the map: pick a courier, click regions, save. */
 export function RegionEditor({ editor, couriers, allRegions, colors, disabled, onPick }: Props) {
   const { courier, draft, dirty, saving, message } = editor;
   const color = courier ? colors[courier.id] : "";
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
+    <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-md">
       <label>
         Regions of{" "}
         <select className={inputClass} value={editor.courierId} disabled={disabled} onChange={(e) => onPick(e.target.value)}>

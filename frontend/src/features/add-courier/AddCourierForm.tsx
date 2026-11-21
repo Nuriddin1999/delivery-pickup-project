@@ -14,17 +14,18 @@ interface Props {
   start: StartFields;
   onStartChange: (s: StartFields) => void;
   onCreated: (c: Courier) => void;
+  onClose?: () => void;
 }
 
 const check = "inline-flex cursor-pointer items-center gap-1.5";
 
-export function AddCourierForm({ takenNames, start, onStartChange, onCreated }: Props) {
+export function AddCourierForm({ takenNames, start, onStartChange, onCreated, onClose }: Props) {
   const { register, errors, serverError, busy, canSubmit, submit } = useCourierForm(start, onStartChange, takenNames, onCreated);
 
   return (
     <form onSubmit={submit} noValidate>
       <Card className="gap-2.5">
-        <CardHeader title="Add a courier" />
+        <CardHeader title="Add a courier" onClose={onClose} />
 
         <FormField label="Name" error={errors.name?.message}>
           <input className={inputClass} maxLength={COURIER_LIMITS.nameLen + 10} placeholder="e.g. Nodira" {...register("name")} />

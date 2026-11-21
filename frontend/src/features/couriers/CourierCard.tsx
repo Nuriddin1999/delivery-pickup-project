@@ -49,7 +49,7 @@ export function CourierCard({
     <Card
       className={cn(
         "border-l-[5px] py-2 transition-shadow duration-300",
-        open && "ring-2 ring-blue-200",
+        open && "ring-2 ring-brand-200",
         !c.active && "opacity-60",
       )}
       style={{ borderLeftColor: color }}

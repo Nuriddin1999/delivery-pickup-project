@@ -1,11 +1,24 @@
 @import "tailwindcss";
 
+/* Brand colours: a calm teal for actions and selection, a dark navy for the header. */
+@theme {
+  --color-brand-50: #eef7f5;
+  --color-brand-100: #d5ece7;
+  --color-brand-200: #acd7ce;
+  --color-brand-300: #7fbfb2;
+  --color-brand-500: #3a9384;
+  --color-brand-600: #2f7d71;
+  --color-brand-700: #276a60;
+  --color-navy-800: #26405b;
+  --color-navy-900: #1d3349;
+}
+
 /* A dispatcher reads this page all day: 14px text, dark enough to read without strain. */
 @layer base {
   body {
     font-size: 14px;
     color: var(--color-slate-800);
-    background: var(--color-slate-50);
+    background: var(--color-slate-100);
   }
 }
 

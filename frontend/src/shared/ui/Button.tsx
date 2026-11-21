@@ -4,9 +4,9 @@ import { cn } from "./styles";
 type Variant = "primary" | "secondary" | "link";
 
 const variants: Record<Variant, string> = {
-  primary: "rounded-md border border-blue-600 bg-blue-600 px-3 py-1.5 text-white hover:bg-blue-700",
-  secondary: "rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50",
-  link: "text-blue-600 hover:underline",
+  primary: "rounded-lg border border-brand-600 bg-brand-600 px-3 py-1.5 font-medium text-white hover:bg-brand-700",
+  secondary: "rounded-lg border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50",
+  link: "text-brand-700 hover:underline",
 };
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {

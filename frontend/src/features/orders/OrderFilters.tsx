@@ -10,11 +10,11 @@ interface Props {
   onChange: (patch: Partial<OrderQuery>) => void;
 }
 
-/** Free / Assigned / Problems / All with counts, then region and id search. */
+/** "Free (12)  Assigned (28)  Problems (2)  All" pills, then id search and region. */
 export function OrderFilters({ query, counts, regions, onChange }: Props) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-1" role="tablist">
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex gap-1.5" role="tablist">
         {(Object.keys(orderFilterLabels) as OrderFilter[]).map((f) => (
           <button
             key={f}
@@ -22,21 +22,20 @@ export function OrderFilters({ query, counts, regions, onChange }: Props) {
             role="tab"
             aria-selected={query.show === f}
             className={cn(
-              "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-[13px]",
-              query.show === f ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white hover:bg-slate-50",
+              "cursor-pointer rounded-lg px-3.5 py-1.5 text-[14px] tabular-nums",
+              query.show === f ? "bg-brand-600 font-semibold text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200",
             )}
             onClick={() => onChange({ show: f })}
           >
-            {orderFilterLabels[f]}
-            <span className={cn("rounded-full px-1.5 text-xs tabular-nums", query.show === f ? "bg-white/20" : "bg-slate-100 text-slate-600")}>{counts[f]}</span>
+            {orderFilterLabels[f]} ({counts[f]})
           </button>
         ))}
       </div>
-      <div className="flex gap-2">
+      <div className="ml-auto flex gap-2">
         <input
           id={SEARCH_ID}
           type="search"
-          className={cn(inputClass, "flex-1")}
+          className={cn(inputClass, "w-44")}
           placeholder="Find order id…  ( / )"
           value={query.q}
           onChange={(e) => onChange({ q: e.target.value })}

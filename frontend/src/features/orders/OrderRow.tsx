@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { Courier, Order } from "@/api/types";
 import { formatKg, formatTime, kindLabel } from "@/domain/format";
+import { KindIcon } from "@/shared/ui/icons";
 import { cn } from "@/shared/ui/styles";
 import { OrderStatus } from "./OrderStatus";
 
@@ -13,38 +14,34 @@ interface Props {
   onSelect: () => void;
 }
 
-/** One line of the order list. The marker matches the pin on the map. */
+const cell = "border-b border-slate-100 px-3 py-2";
+
+/** One row of the order table. The icon matches the pin on the map. */
 export function OrderRow({ order: o, courier, color, unassignable, selected, onSelect }: Props) {
-  const ref = useRef<HTMLLIElement>(null);
+  const ref = useRef<HTMLTableRowElement>(null);
   // Keep the selected row visible when it is picked on the map or with the arrow keys.
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: "nearest" });
   }, [selected]);
 
   return (
-    <li
-      ref={ref}
-      aria-selected={selected}
-      className={cn(
-        "grid cursor-pointer grid-cols-[14px_44px_62px_1fr_52px_40px_auto] items-center gap-2 border-b border-slate-200 px-2 py-1.5 tabular-nums hover:bg-slate-50",
-        selected && "bg-blue-50 shadow-[inset_3px_0_0_var(--color-blue-600)] hover:bg-blue-50",
-      )}
-      onClick={onSelect}
-    >
-      <span
-        className={cn("size-3 border-2 border-slate-700 bg-white", o.type === "pickup" ? "rotate-45 rounded-[2px]" : "rounded-full")}
-        style={color ? { background: color, borderColor: color } : undefined}
-      />
-      <b>{o.id}</b>
-      <span>{kindLabel(o.type)}</span>
-      <span className="truncate text-slate-600">{o.region || "—"}</span>
-      <span className="text-right text-slate-600">{formatKg(o.weight_kg)}</span>
-      <span className="text-slate-600" title="Created">
-        {formatTime(o.created_at)}
-      </span>
-      <span className="flex items-center justify-end gap-1 text-right">
-        <OrderStatus order={o} courier={courier} unassignable={unassignable} />
-      </span>
-    </li>
+    <tr ref={ref} aria-selected={selected} className={cn("cursor-pointer tabular-nums", selected ? "bg-brand-100/70" : "hover:bg-slate-50")} onClick={onSelect}>
+      <td className={cn(cell, "w-0 pr-0")}>
+        <KindIcon type={o.type} color={color} />
+      </td>
+      <td className={cn(cell, "text-[15px] font-bold")}>{o.id}</td>
+      <td className={cell}>{kindLabel(o.type)}</td>
+      <td className={cell}>{o.region || "—"}</td>
+      <td className={cn(cell, "text-right")}>{formatKg(o.weight_kg)}</td>
+      <td className={cn(cell, "text-slate-600")}>{formatTime(o.created_at)}</td>
+      <td className={cell}>
+        <span className="flex items-center gap-1">
+          <OrderStatus order={o} courier={courier} unassignable={unassignable} />
+        </span>
+      </td>
+      <td className={cn(cell, "w-0 text-lg text-slate-400")} aria-hidden>
+        ›
+      </td>
+    </tr>
   );
 }

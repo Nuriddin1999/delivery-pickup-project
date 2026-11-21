@@ -12,17 +12,16 @@ export function useAppRoute() {
   const orderMatch = useMatch(patterns.order);
   const courierMatch = useMatch(patterns.courier);
 
-  const tab: Tab = isAdd ? "add" : pathname.startsWith(paths.orders) ? "orders" : "couriers";
+  const tab: Tab = isAdd ? "add" : pathname.startsWith(paths.orders) ? "order" : "couriers";
 
   return {
     tab,
     selectedOrderId: orderMatch?.params.orderId ?? null,
     focusedCourierId: isAdd ? null : (courierMatch?.params.courierId ?? null),
-    // Staying on the orders tab keeps the list's filter, which lives in the query string.
-    selectOrder: (id: string | null) => {
-      const keep = pathname.startsWith(paths.orders) ? search : "";
-      navigate((id ? paths.order(id) : paths.orders) + keep);
-    },
-    focusCourier: (id: string | null) => navigate(id ? paths.courier(id) : paths.couriers),
+    // The order list is always on screen; its filter lives in the query string, so every move keeps it.
+    selectOrder: (id: string | null) => navigate((id ? paths.order(id) : paths.orders) + search),
+    focusCourier: (id: string | null) => navigate((id ? paths.courier(id) : paths.couriers) + search),
+    /** keeps the order list's filter on links */
+    search,
   };
 }

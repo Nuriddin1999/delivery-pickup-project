@@ -12,7 +12,7 @@ export function UpdatedAgo({ at }: { at: number }) {
   const s = Math.max(0, Math.round((now - at) / 1000));
   const text = s < 5 ? "just now" : s < 60 ? `${s} s ago` : `${Math.floor(s / 60)} min ago`;
   return (
-    <span className={s > 60 ? "text-xs text-amber-700" : "text-xs text-slate-500"} title="The page reloads the data every 15 seconds">
+    <span className={s > 60 ? "text-xs text-amber-300" : "text-xs text-white/60"} title="The page reloads the data every 15 seconds">
       updated {text}
     </span>
   );
