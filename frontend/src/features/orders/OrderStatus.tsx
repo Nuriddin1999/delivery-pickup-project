@@ -16,6 +16,7 @@ export function OrderStatus({ order, courier, unassignable }: Props) {
     return (
       <>
         {courier.name}
+        {order.done_at && <Tag tone="ok">done</Tag>}
         {order.outside_regions && (
           <Tag tone="warn" title="Outside the courier's regions">
             outside

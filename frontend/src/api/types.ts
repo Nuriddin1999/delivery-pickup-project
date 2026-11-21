@@ -50,6 +50,8 @@ export interface Order {
   problems?: string[];
   notes?: string[];
   outside_regions: boolean;
+  /** When the courier marked the stop done (from the courier app); absent while not done. */
+  done_at?: string;
 }
 
 export interface Unassignable {
