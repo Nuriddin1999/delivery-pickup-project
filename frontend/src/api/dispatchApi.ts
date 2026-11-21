@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { AutoAssignResult, CandidateList, Courier, DispatchState, NewCourierInput, Order } from "./types";
+import type { AutoAssignResult, CandidateList, Courier, Kind, DispatchState, NewCourierInput, Order } from "./types";
 
 const id = encodeURIComponent;
 
@@ -9,6 +9,8 @@ export const dispatchApi = {
   regionShapes: () => request<GeoJSON.FeatureCollection>("GET", "/api/regions.geojson"),
 
   addCourier: (input: NewCourierInput) => request<Courier>("POST", "/api/couriers", input),
+  /** Replaces the courier's kinds of work; refused while they hold orders of a kind taken away. */
+  setKinds: (courierId: string, kinds: Kind[]) => request<Courier>("PUT", `/api/couriers/${id(courierId)}/kinds`, { kinds }),
   setRegions: (courierId: string, regions: string[]) => request<Courier>("PUT", `/api/couriers/${id(courierId)}/regions`, { regions }),
 
   /** Every courier the order could go to: allowed ones first, nearest on top. */

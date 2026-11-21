@@ -50,12 +50,12 @@ func CheckKindsChange(c Courier, kinds []Kind, orders []Order) *Refusal {
 		for i, o := range held {
 			ids[i] = o.ID
 		}
-		what := string(k)
+		what, them := string(k), "it"
 		if len(held) > 1 {
-			what = k.Plural()
+			what, them = k.Plural(), "them"
 		}
-		return Refuse(CodeKindInUse, "%s still has %d %s: %s. Take them off or move them first",
-			c.Name, len(held), what, strings.Join(ids, ", "))
+		return Refuse(CodeKindInUse, "%s still has %d %s: %s. Take %s off or move %s first",
+			c.Name, len(held), what, strings.Join(ids, ", "), them, them)
 	}
 	return nil
 }

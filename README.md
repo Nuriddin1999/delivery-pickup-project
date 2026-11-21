@@ -73,6 +73,7 @@ Every error response is JSON: `{"code": "...", "error": "plain sentence"}`. A fo
 | GET | `/api/regions.geojson` | | region shapes |
 | POST | `/api/couriers` | `{name, kinds, max_parcels, max_kg, start:{lat,lng}, active?, regions?}` | 201, or 400 with `fields` |
 | PUT | `/api/couriers/{id}/regions` | `{regions: [...]}` | replaces the courier's regions |
+| PUT | `/api/couriers/{id}/kinds` | `{kinds: ["pickup", "delivery"]}` | replaces the courier's kinds of work: at least one; 409 `kind_in_use` when a kind is taken away while the courier holds orders of it |
 | GET | `/api/orders/{id}/candidates` | | every courier except the holder: `{courier_id, allowed, code?, reason?, added_km, nearest, load}`, allowed first, nearest on top |
 | PUT | `/api/orders/{id}/courier` | `{courier_id}` | assigns the order, or moves it if another courier holds it |
 | DELETE | `/api/orders/{id}/courier` | | takes the order off its courier |
@@ -142,7 +143,8 @@ Other things in the data:
   - Unknown JSON fields and wrong types (for example `"max_parcels": 2.5` or `"max_kg": "10"`) are refused with a field message.
 - **Weights** use a 1e-9 tolerance, so 12.1 + 2.9 kg fits a 15 kg limit despite float rounding.
 - **Courier colours** come from a fixed palette by the courier's position in the list.
-- Couriers cannot be edited (except regions), deactivated or deleted, and orders cannot be created. The task does not ask for this.
+- **Kinds of work can be changed** after a courier is added (pickups only → both, both → one). Adding a kind is always allowed. Taking one away is refused while the courier still holds orders of that kind ("Aziz still has 1 delivery: o06. Take it off or move it first"). Unlike a region change, a courier who no longer does deliveries could not deliver a parcel they hold, so the dispatcher moves those orders first. A courier keeps at least one kind.
+- Couriers cannot be edited otherwise (except regions and kinds), deactivated or deleted, and orders cannot be created. The task does not ask for this.
 
 ## Bonus parts
 
@@ -185,6 +187,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 | 14 | 14px text, darker grey, big order details | reading | less strain over a working day |
 | 15 | One colour per status | reading | red means broken data and nothing else |
 | 16 | Plain message when the courier list cannot load | reading | a problem is said in words instead of an endless "Checking…" |
+| 17 | Change a courier's kinds of work in their card | steps | a pickup-only courier can be given deliveries (and back) in one click, without adding them again |
 
 ### Fewer steps
 
@@ -213,6 +216,8 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 15. **One colour per status, everywhere:** red only for broken data, amber for "no courier fits" and "outside regions" (before, "no courier fits" was red like broken data), the courier's colour for assigned orders, grey for free. Teal is used only for actions and for what is chosen.
 16. **A plain message when the courier list cannot be loaded.** If the candidates request fails (for example a server started before this change, which answers "No such API endpoint"), the order panel says so with the server's words and a "Try again" link, instead of showing "Checking couriers…" forever.
 
+17. **A courier's kinds of work can be changed in their card.** In the Couriers tab, the open card shows "Works on: [Pickups] [Deliveries]". A click adds or takes away that kind and saves at once, so a pickup-only courier can be given deliveries without being added again. The last kind left cannot be taken away (its button is disabled). The server refuses to take a kind away while the courier still holds orders of that kind and names them ("Dilnoza still has 1 delivery: o02. Take it off or move it first"); the message appears under the buttons. New endpoint `PUT /api/couriers/{id}/kinds`, with tests in the domain, the use case and over HTTP.
+
 ### What I did not change, and why
 
 - **Drag-and-drop of an order onto a courier:** slower than a click or a key, awkward on a touchpad, and much more code.
@@ -240,6 +245,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 - [seed/seed_test.go](backend/internal/seed/seed_test.go): every broken seed order is found with its reason.
 - [repository/memory/memory_test.go](backend/internal/repository/memory/memory_test.go): stored data cannot be changed from outside; ids and sequence numbers.
 - [transport/httpapi/api_test.go](backend/internal/transport/httpapi/api_test.go): requests sent by hand over HTTP, including bad JSON, wrong types, unknown fields and unknown ids, with status codes and messages; the courier list for an order.
+- [domain/kinds_change_test.go](backend/internal/domain/kinds_change_test.go): changing a courier's kinds: known kinds only, at least one, adding always allowed, taking away refused while orders of that kind are held (also in the use case test on the seed data and over HTTP).
 - [config/config_test.go](backend/internal/config/config_test.go): reading `.env`, and flags winning over it.
 
 ## Architecture
