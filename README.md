@@ -257,7 +257,7 @@ The second part of the follow-up task: a page for couriers that works on a phone
 
 The list refreshes on its own every 5 seconds while the app is open (and at once when it is opened again), so an order the dispatcher gives out or takes off shows up within seconds. With nobody chosen, the app lists all orders with who holds them.
 
-**On the dispatcher page** a done order shows a green "done" tag next to the courier, and the order panel says "Aziz marked this stop done at 10:42. A done order stays with its courier." instead of offering Move to / Take off.
+**On the dispatcher page** the order table has a **Done** pill: the stops couriers have marked done move there from Assigned, so Assigned is the work still to do. A done order also shows a green "done" tag next to the courier, and the order panel says "Aziz marked this stop done at 10:42. A done order stays with its courier." instead of offering Move to / Take off.
 
 **Decisions**
 
