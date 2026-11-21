@@ -31,6 +31,8 @@ export default function App() {
     return () => ctrl.abort();
   }, [loadCouriers]);
 
+  const me = load.status === 'ready' ? load.couriers.find((c) => c.id === courierId) : undefined;
+
   return (
     <View style={styles.container}>
       {/* A tap anywhere outside the open list closes it. */}
@@ -59,6 +61,7 @@ export default function App() {
             open={listOpen}
             onOpenChange={setListOpen}
           />
+          {me && <Text style={styles.you}>You are {me.name}</Text>}
         </View>
       )}
 
@@ -72,6 +75,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', padding: 24, paddingTop: Constants.statusBarHeight + 48 },
   block: { gap: 12 },
   text: { fontSize: 18, fontWeight: '600', textAlign: 'center' },
+  you: { marginTop: 12, fontSize: 18, textAlign: 'center', color: '#0f172a' },
   muted: { fontSize: 14, color: '#64748b', textAlign: 'center' },
   button: { alignSelf: 'center', backgroundColor: '#2563eb', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
