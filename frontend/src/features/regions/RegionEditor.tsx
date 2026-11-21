@@ -51,6 +51,9 @@ export function RegionEditor({ editor, couriers, allRegions, colors, disabled, o
           <Button disabled={!dirty || saving} onClick={editor.reset}>
             Undo changes
           </Button>
+          <Button variant="link" disabled={saving} onClick={() => onPick("")} title="Stop editing regions">
+            Done
+          </Button>
           {dirty && <span className={hintText}>Unsaved: click regions on the map to add or remove them.</span>}
           {!dirty && !message && <span className={hintText}>Click a region on the map to add or remove it.</span>}
         </>

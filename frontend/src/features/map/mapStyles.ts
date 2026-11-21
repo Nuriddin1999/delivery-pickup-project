@@ -79,10 +79,18 @@ export const newStartIcon = L.divIcon({
   iconAnchor: [11, 11],
 });
 
-export function startIcon(color: string, name: string) {
+/** How a courier start pin looks while an order is picked: "allowed" couriers stand out, the others fade. */
+export type StartEmphasis = "normal" | "allowed" | "faded";
+
+export function startIcon(color: string, name: string, emphasis: StartEmphasis = "normal") {
+  const look = cn(
+    "flex size-4.5 items-center justify-center rounded-[50%_50%_50%_0] border-3 border-(--c) bg-white text-[9px] font-extrabold text-(--c)",
+    emphasis === "allowed" && "scale-150 shadow-[0_0_0_3px_white,0_0_0_5px_var(--c)]",
+    emphasis === "faded" && "opacity-30",
+  );
   return L.divIcon({
     ...iconBase,
-    html: `<div class="flex size-4.5 items-center justify-center rounded-[50%_50%_50%_0] border-3 border-(--c) bg-white text-[9px] font-extrabold text-(--c)" style="--c:${color}">${escapeHtml(name.charAt(0))}</div>`,
+    html: `<div class="${look}" style="--c:${color}">${escapeHtml(name.charAt(0))}</div>`,
     iconSize: [18, 18],
     iconAnchor: [9, 9],
   });

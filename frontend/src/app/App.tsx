@@ -4,8 +4,8 @@ import { LoadingScreen } from "./LoadingScreen";
 
 /** Loads the data, then shows the dispatcher's dashboard. */
 export default function App() {
-  const { state, shapes, loadError, refresh } = useDispatchState();
+  const { state, shapes, loadError, updatedAt, refresh } = useDispatchState();
 
   if (!state) return <LoadingScreen error={loadError} onRetry={refresh} />;
-  return <Dashboard state={state} shapes={shapes} loadError={loadError} />;
+  return <Dashboard state={state} shapes={shapes} loadError={loadError} updatedAt={updatedAt} />;
 }

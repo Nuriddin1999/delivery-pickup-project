@@ -9,6 +9,7 @@ import { usePointHighlight } from "@/features/map/usePointHighlight";
 import { RegionEditor } from "@/features/regions/RegionEditor";
 import { useRegionEditor } from "@/features/regions/useRegionEditor";
 import { useAutoAssign } from "@/features/auto-assign/useAutoAssign";
+import { useCandidates } from "@/features/orders/useCandidates";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useToast } from "@/hooks/useToast";
 import { Toast } from "@/shared/ui/Toast";
@@ -21,10 +22,11 @@ interface Props {
   state: DispatchState;
   shapes: GeoJSON.FeatureCollection | null;
   loadError: string | null;
+  updatedAt: number;
 }
 
 /** The page layout: header, map with its region toolbar, and the side panel. */
-export function Dashboard({ state, shapes, loadError }: Props) {
+export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
   const route = useAppRoute();
   const { toast, showToast, undo } = useToast();
   const regions = useRegionEditor(state.couriers);
@@ -38,6 +40,9 @@ export function Dashboard({ state, shapes, loadError }: Props) {
   const isAdding = route.tab === "add";
   const mapMode: MapMode = isAdding ? "pickStart" : regions.courier ? "regions" : "none";
   const focused = state.couriers.find((c) => c.id === route.focusedCourierId);
+  // Same query as the order box, so this costs no extra request.
+  const candidates = useCandidates(route.selectedOrderId).data;
+  const allowedCourierIds = route.selectedOrderId && candidates?.order_id === route.selectedOrderId ? new Set(candidates.candidates.filter((c) => c.allowed).map((c) => c.courier_id)) : null;
 
   const pickRegionCourier = (id: string) => {
     // On the couriers tab, also show that courier's route.
@@ -46,7 +51,7 @@ export function Dashboard({ state, shapes, loadError }: Props) {
 
   return (
     <div className="flex h-screen flex-col">
-      <Header state={state} autoAssignBusy={autoAssign.busy} onAutoAssign={autoAssign.run} />
+      <Header state={state} updatedAt={updatedAt} autoAssignBusy={autoAssign.busy} onAutoAssign={autoAssign.run} />
 
       <main className="flex min-h-0 flex-1 max-[900px]:flex-col">
         <section className="flex min-w-0 flex-1 flex-col max-[900px]:min-h-[55vh]">
@@ -65,6 +70,7 @@ export function Dashboard({ state, shapes, loadError }: Props) {
             route={focused ? { route: showShorter ? focused.better_route : focused.route, color: colors[focused.id] } : null}
             startPreview={isAdding ? readStart(newStart) : null}
             highlight={pointHighlight.highlight}
+            allowedCourierIds={allowedCourierIds}
           />
         </section>
 

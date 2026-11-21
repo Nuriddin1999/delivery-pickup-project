@@ -45,13 +45,16 @@ export function CourierCard({ courier: c, color, open, showShorter, onToggle, on
         title={open ? "Close" : "Show stops here and the route on the map"}
       >
         <span className="flex min-w-0 items-center gap-1.5">
-          <span className={cn("text-xs text-slate-500 transition-transform", open && "rotate-90")}>▶</span>
+          <span className={cn("inline-block w-2 text-slate-500 transition-transform", open && "rotate-90")} aria-hidden>›</span>
           <Swatch color={color} />
-          <b className="truncate text-[15px]">{c.name}</b>
-          <span className="text-xs text-slate-500" title={c.kinds.map(kindLabel).join(" + ")}>
-            {c.kinds.map(kindShort).join("+")}
-          </span>
-          {!c.active && <Tag>inactive</Tag>}
+          <b className="shrink-0 text-[15px]">{c.name}</b>
+          {c.active ? (
+            <span className="truncate text-xs text-slate-500" title={c.kinds.map(kindLabel).join(" + ")}>
+              {c.kinds.map(kindShort).join("+")}
+            </span>
+          ) : (
+            <Tag>inactive</Tag>
+          )}
           {outside > 0 && (
             <Tag tone="warn" title={`Outside ${c.name}'s regions: ${c.outside_regions.join(", ")}`}>
               {outside} outside

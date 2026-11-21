@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+/* A dispatcher reads this page all day: 14px text, dark enough to read without strain. */
+@layer base {
+  body {
+    font-size: 14px;
+    color: var(--color-slate-800);
+    background: var(--color-slate-50);
+  }
+}
