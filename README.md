@@ -200,7 +200,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 | 8 | One line per courier | layout | the whole team's load fits on one screen |
 | 9 | Order table: Free, oldest first, counts, search, region | steps, reading | the work still to do comes first, in the order it should be done |
 | 10 | Map highlights who can take the order | steps | "who is closest" is visible at a glance |
-| 11 | Data refreshes every 15 s | reading | changes by others show up without a reload |
+| 11 | Data refreshes every 5 s | reading | changes by others show up without a reload |
 | 12 | Phone layout | layout | the page stays usable on a small screen |
 | 13 | Region bar: Done and × | layout | the bar does not cover the map when it is not needed |
 | 14 | 14px text, darker grey, big order details | reading | less strain over a working day |
@@ -225,7 +225,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 8. **The courier panel is one line per courier:** name, kinds, a parcel bar, a weight bar and total km. All six couriers fit on one screen, so "who still has room" can be seen at a glance. Clicking a line slides the full card open (regions, load, stops, km) and draws the route on the map. Inactive couriers go to the bottom. The "shorter order" switch moved into the open card, where it applies.
 9. **The order table opens on Free, oldest first.** Free orders are the work still to do, and oldest first is the order auto-assign uses. The pills show counts (Free (10), Assigned (7), Problems (8), All (25)), and there are an id search and a region filter. The creation time is shown (in Tashkent time). The data has no street addresses, so the table has no address column. Filter, region and search are kept in the address, so a reload or a shared link keeps them, like every other view of the page. When the table scrolls, the selected row slides to the middle of the visible rows (below the sticky header), so it is never half hidden at an edge; only the table moves, never the page.
 10. **The map helps choose.** While an order is open, the start pins of the couriers allowed to take it grow and the other couriers fade. When an order is picked in the table, the map flies to it and rings pulse around its pin for a few seconds (in its courier's colour, teal while free), the same way a courier's start point does, so the eye finds it at once. When an order opens another way (a link, or after giving it out) and its pin is off screen or under the legend, the map pans to it (the zoom stays).
-11. **The data refreshes by itself** every 15 seconds and when the tab gets focus. Before, the page only reloaded after the dispatcher's own changes, so changes by a second dispatcher stayed invisible.
+11. **The data refreshes by itself** every 5 seconds and when the tab gets focus. Before, the page only reloaded after the dispatcher's own changes, so changes by a second dispatcher, or stops a courier marks done in the app, stayed invisible.
 12. **Phone layout.** A dispatcher works at a desk, but may need to check something away from it, and the old page broke on a phone (header in three rows, table cut off, courier names over the bars). Below 1000 px the blocks stack (map, table, order panel), the page scrolls as a whole and the map has a fixed height. Below 640 px the header has two rows, the table drops the Type, Created and arrow columns (the icon shows the type), the filter pills scroll sideways, the courier rows drop the weight bar, and picking an order scrolls to the order panel. Checked at 360 and 320 px: nothing is wider than the screen.
 13. **The region bar has a Done button and a ×.** Done stops editing; before, the only way out was to choose "— choose a courier —" in the select. The × folds the whole bar into a small "Regions" button so it does not cover the map (remembered). It asks first if region changes are unsaved, and the bar opens again by itself right after a courier is added, when their regions are to be chosen.
 
@@ -342,7 +342,7 @@ frontend/src/
   api/                      client.ts (fetch + ApiError), dispatchApi.ts (endpoints), types.ts (JSON shapes)
   config/env.ts             VITE_* settings from .env
   domain/                   pure logic, no React: formatting, form checks, colours
-  hooks/                    shared: useDispatchState (TanStack Query, reloads every 15 s), useStateMutation (change + reload),
+  hooks/                    shared: useDispatchState (TanStack Query, reloads every 5 s), useStateMutation (change + reload),
                             useToast (with Undo), useStoredFlag
   features/                 one folder per part of the page, one component per file
     map/                    MapView, RegionsLayer, OrderMarker, MapClickCatcher, KeepInView, Legend (on the map), mapStyles.ts
