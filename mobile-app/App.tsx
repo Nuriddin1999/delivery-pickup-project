@@ -1,9 +1,9 @@
-import { Picker } from '@react-native-picker/picker';
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { API_URL, fetchCouriers, type Courier } from './src/api';
+import { Select } from './src/Select';
 
 type Load =
   | { status: 'loading' }
@@ -13,6 +13,7 @@ type Load =
 export default function App() {
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [courierId, setCourierId] = useState('');
+  const [listOpen, setListOpen] = useState(false);
 
   const loadCouriers = useCallback((signal?: AbortSignal) => {
     setLoad({ status: 'loading' });
@@ -32,6 +33,9 @@ export default function App() {
 
   return (
     <View style={styles.container}>
+      {/* A tap anywhere outside the open list closes it. */}
+      {listOpen && <Pressable style={StyleSheet.absoluteFill} onPress={() => setListOpen(false)} />}
+
       {load.status === 'loading' && <Text style={styles.text}>Loading...</Text>}
 
       {load.status === 'error' && (
@@ -47,15 +51,14 @@ export default function App() {
       {load.status === 'ready' && (
         <View style={styles.block}>
           <Text style={styles.text}>Please select yourself:</Text>
-          <View style={styles.pickerBox}>
-            {/* "dropdown" opens the list right under the field; Android's default "dialog" floats it apart. */}
-            <Picker mode="dropdown" selectedValue={courierId} onValueChange={(id) => setCourierId(String(id))}>
-              <Picker.Item label="Couriers" value="" color="#94a3b8" />
-              {load.couriers.map((c) => (
-                <Picker.Item key={c.id} label={c.name} value={c.id} />
-              ))}
-            </Picker>
-          </View>
+          <Select
+            placeholder="Couriers"
+            options={load.couriers.map((c) => ({ value: c.id, label: c.name }))}
+            value={courierId}
+            onChange={setCourierId}
+            open={listOpen}
+            onOpenChange={setListOpen}
+          />
         </View>
       )}
 
@@ -70,7 +73,6 @@ const styles = StyleSheet.create({
   block: { gap: 12 },
   text: { fontSize: 18, fontWeight: '600', textAlign: 'center' },
   muted: { fontSize: 14, color: '#64748b', textAlign: 'center' },
-  pickerBox: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8 },
   button: { alignSelf: 'center', backgroundColor: '#2563eb', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
