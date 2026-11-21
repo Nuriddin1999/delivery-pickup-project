@@ -4,7 +4,7 @@ A dispatcher's tool for one hub in Tashkent. The page shows a map of regions, or
 
 - **Backend:** Go 1.24+, standard library only (`net/http`, `encoding/json`). Data lives in memory and is reloaded from `data/` on every start.
 - **Frontend:** React 19 + TypeScript (Vite), React Router 7, TanStack Query 5 (server data), React Hook Form + zod (add-courier form), Tailwind CSS v4, Leaflet with OpenStreetMap tiles.
-- The task text is in [docs/TASK.md](docs/TASK.md).
+- The task text is in [docs/TASK.md](docs/TASK.md); the follow-up task (dispatcher page improvements, courier phone page) is in [docs/TASK2.md](docs/TASK2.md). What changed for it: [Dispatcher page improvements](#dispatcher-page-improvements).
 
 ## How to run
 
@@ -50,15 +50,16 @@ cd backend && go test ./...
 
 ## Page addresses
 
-Each view of the page has its own link, so it can be shared, reloaded or reached with the browser's back button:
+Each view of the page has its own link, so it can be shared, reloaded or reached with the browser's back button. The order table's filter stays in the query string on every one of them:
 
 | Address | What it shows |
 | --- | --- |
-| `/couriers` | courier panel (`/` and unknown addresses redirect here) |
+| `/couriers` | courier panel |
 | `/couriers/c1` | courier panel, with that courier's route drawn on the map |
-| `/couriers/new` | the add-courier form; clicks on the map set the start point |
-| `/orders` | order list |
-| `/orders/o12` | order list with that order selected, ready to assign |
+| `/couriers/new` | the add-courier form ("+ Add courier" in the header); clicks on the map set the start point |
+| `/orders` | no order open; the table under the map shows free orders, oldest first (`/` and unknown addresses redirect here) |
+| `/orders?show=problem&region=Chilonzor&q=o1` | the list's filter (`free`, `taken`, `problem`, `all`), region and id search |
+| `/orders/o12` | that order open in the right panel, ready to assign |
 
 The Go server sends the page for any address that is not a file or `/api/...`, so these links also work after a reload in the Docker build.
 
@@ -72,6 +73,7 @@ Every error response is JSON: `{"code": "...", "error": "plain sentence"}`. A fo
 | GET | `/api/regions.geojson` | | region shapes |
 | POST | `/api/couriers` | `{name, kinds, max_parcels, max_kg, start:{lat,lng}, active?, regions?}` | 201, or 400 with `fields` |
 | PUT | `/api/couriers/{id}/regions` | `{regions: [...]}` | replaces the courier's regions |
+| GET | `/api/orders/{id}/candidates` | | every courier except the holder: `{courier_id, allowed, code?, reason?, added_km, nearest, load}`, allowed first, nearest on top |
 | PUT | `/api/orders/{id}/courier` | `{courier_id}` | assigns the order, or moves it if another courier holds it |
 | DELETE | `/api/orders/{id}/courier` | | takes the order off its courier |
 | POST | `/api/auto-assign` | | `{assigned: [...], unplaced: [{order_id, reason}]}` |
@@ -147,9 +149,77 @@ Other things in the data:
 - **Auto-assign** (button at the top right). It takes every free, valid order, oldest first, and gives it to the allowed courier for whom it is **nearest**. Orders already assigned are not touched. Orders it cannot place are listed with the reason: either the permanent reason (region, kind, inactive, weight) or "Every courier allowed to take it is full: …" with each courier's limit.
   - **How "nearest" is chosen:** the courier whose route grows the least, in km, when the order is added at the end of their pickups or deliveries. I picked this over "closest start point" because it accounts for where the courier already has to go, including the trip to the hub. For a courier with no orders it is roughly start → order → hub. Ties go to the courier who comes first in the list.
   - It is greedy and does not look ahead: an early order may take the last free space that a later order needed more.
-- **Reassign:** in the order box, choose another courier and press "Move", or press "Take off".
+- **Reassign:** in the open order, choose another courier under "Move to" and press "Move to …", or press "Take off". Undo puts it back.
 - **Better routes:** each courier card shows the km in the given order and in a shorter order. A checkbox switches the stop list and the map line to the shorter order. Pickups stay before the hub and deliveries after it. Each part is solved exactly by trying every order when it has 7 stops or fewer, and otherwise by nearest neighbour followed by 2-opt. The shorter order is only shown, never saved: the rule says the route follows the order given.
 - **Docker:** `docker compose up --build` builds the page and the server into one image.
+
+## Dispatcher page improvements
+
+The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page for a dispatcher who uses it all working day, in three ways: **layout**, **readability**, and **the number of steps needed to assign an order**, and to choose the changes myself. Below is every change, which of the three it serves, and why I made it. The look (dark header, map over the order table, order panel with courier cards and one big button) follows mockups I was given. The texts stay in English like the rest of the project, including the server's messages.
+
+### Steps to assign an order
+
+| Way of working | Before | After |
+| --- | --- | --- |
+| Going through the free orders | Orders tab → scroll to the order → click it → open the courier select → pick a courier → Assign: **5 actions per order** | the next free order is already open and the nearest courier already chosen → "Give to Bekzod": **1 action per order** |
+| From a pin on the map | pin → open the select → pick a courier → Assign: **4** | pin → "Give to …": **2** (3 when choosing someone other than the nearest) |
+| Undoing a wrong click | find the order → open the select → pick the old courier → Move: **4** | Undo in the message: **1** |
+
+### All changes at a glance
+
+| # | Change | Serves | Why, in one line |
+| --- | --- | --- | --- |
+| 1 | Courier cards, nearest chosen, one big button, the others disabled | steps | most orders become one click, and the reason for every refusal is visible before clicking |
+| 2 | Next free order opens by itself | steps | working through the list needs no searching |
+| 3 | Undo | steps | one-click assigning must have a one-click way back |
+| 4 | Map over the order table, Order / Couriers on the right | layout | orders, map and the open order are on screen together |
+| 5 | Adjustable split, Expand table / Show map | layout | the dispatcher decides how much room the map gets |
+| 6 | Dark header with date and actions | layout | global actions in one place, the legend next to the map |
+| 7 | Region colours, arrow pins, hub badge, scale | reading | the map can be read without the legend |
+| 8 | One line per courier | layout | the whole team's load fits on one screen |
+| 9 | Order table: Free, oldest first, counts, search, region | steps, reading | the work still to do comes first, in the order it should be done |
+| 10 | Map highlights who can take the order | steps | "who is closest" is visible at a glance |
+| 11 | Data refreshes every 15 s | reading | changes by others show up without a reload |
+| 12 | Phone layout | layout | the page stays usable on a small screen |
+| 13 | Region bar: Done and × | layout | the bar does not cover the map when it is not needed |
+| 14 | 14px text, darker grey, big order details | reading | less strain over a working day |
+| 15 | One colour per status | reading | red means broken data and nothing else |
+| 16 | Plain message when the courier list cannot load | reading | a problem is said in words instead of an endless "Checking…" |
+
+### Fewer steps
+
+1. **The courier select became a card per courier, with the nearest one already chosen.** It is the biggest change. Under "Who gets it" every courier has a card. A card for an allowed courier shows the load they would have after the order (parcels and kg) and the km the order adds to their route. The nearest one by the auto-assign rule (least km added) is on top, marked "nearest" and chosen at first. A big button under the cards says what will happen: "Give to Bekzod". For most orders the dispatcher only presses it. Couriers who cannot take the order are disabled: greyed out and not selectable, with the server's reason on the card (for example "Kamola does not work in Bektemir"), so the dispatcher sees why before trying. When nobody can take the order, the button is disabled and says "Nobody can take it". The server still checks every assignment: a request sent by hand for a refused courier gets the same refusal (see the HTTP tests).
+   - The cards come from a new endpoint, `GET /api/orders/{id}/candidates`. The server works it out with the same `CanTake` and the same km function as auto-assign. Before, the page repeated the rules in TypeScript (`quickCheck`) to show its hints. That copy is gone, so a hint can no longer disagree with the server. Auto-assign now picks the courier marked "nearest" here, so the two always agree (`domain.Candidates`).
+2. **The next free order opens by itself.** When an order gets its first courier, the next free order that someone can take opens, further down the table the dispatcher is looking at (so a region filter is respected). A checkbox turns this off, for anyone who prefers to work from the map. The choice is remembered in the browser. Moving an order or taking it off does not jump.
+3. **Undo.** The message after assign, move or take off has an Undo button for 8 seconds. With one-click assigning, a wrong click is more likely, and undo has to be just as cheap. Undo is an ordinary request, so the server checks it again. If the old courier filled up in the meantime, the message says so.
+   - Decision: an order that Undo moves back goes to the **end** of the old courier's route, because the route follows the time of assignment. Keeping the old place would mean a second, hidden rule for route order.
+
+### Layout
+
+4. **Map on top, order table under it, the open order on the right.** Before, the orders, the couriers and the add-courier form shared one side panel, so looking at the list hid the couriers and the other way round. Now the order table is always on screen under the map, and the right panel has two tabs: **Order** (the open order and who gets it) and **Couriers**. Adding a courier is the "+ Add courier" button in the header, and the form opens in the right panel. `/` now opens the orders, the dispatcher's main work.
+5. **The split between map and table is adjustable.** Some hours are spent on the map (regions, routes), others in the list, so one fixed split cannot suit both. The bar between them can be dragged; it follows the pointer exactly, because while dragging only the map's height is written, once per frame, and the page is not re-rendered. When the bar has focus, ↑/↓ move it, and a double-click puts it back to 60 % map. "Expand table" gives the table the whole height and hides the map; "Show map" brings it back. Both slide in 0.3 s. The split and the expanded state are remembered in the browser. Leaflet is told the new size on every change, so the tiles always fill the map.
+6. **The dark header** holds the page name, today's date (Tashkent time), auto-assign and "+ Add courier": everything that is not about one order or one courier. The pin legend moved from the header onto the map's bottom-left corner, next to what it explains. It can be folded away (remembered), and the map moves a picked order out from under it.
+7. **The map reads faster.** Each region has its own soft colour, so neighbouring districts are easy to tell apart. Pins carry an arrow: a square with an up arrow is a pickup (the parcel goes to the hub), a circle with a down arrow is a delivery. Free orders are grey, assigned ones take the courier's colour (the original task asks for that), broken ones are red and dashed. The selected order is larger, with its id above it. The hub is a warehouse badge. A scale bar shows distances.
+8. **The courier panel is one line per courier:** name, kinds, a parcel bar, a weight bar and total km. All six couriers fit on one screen, so "who still has room" can be seen at a glance. Clicking a line slides the full card open (regions, load, stops, km) and draws the route on the map. Inactive couriers go to the bottom. The "shorter order" switch moved into the open card, where it applies.
+9. **The order table opens on Free, oldest first.** Free orders are the work still to do, and oldest first is the order auto-assign uses. The pills show counts (Free (10), Assigned (7), Problems (8), All (25)), and there are an id search and a region filter. The creation time is shown (in Tashkent time). The data has no street addresses, so the table has no address column. Filter, region and search are kept in the address, so a reload or a shared link keeps them, like every other view of the page.
+10. **The map helps choose.** While an order is open, the start pins of the couriers allowed to take it grow and the other couriers fade. When an order is picked in the table, the map flies to it and rings pulse around its pin for a few seconds (in its courier's colour, teal while free), the same way a courier's start point does, so the eye finds it at once. When an order opens another way (the next order after giving one out) and its pin is off screen or under the legend, the map pans to it (the zoom stays).
+11. **The data refreshes by itself** every 15 seconds and when the tab gets focus. Before, the page only reloaded after the dispatcher's own changes, so changes by a second dispatcher stayed invisible.
+12. **Phone layout.** A dispatcher works at a desk, but may need to check something away from it, and the old page broke on a phone (header in three rows, table cut off, courier names over the bars). Below 1000 px the blocks stack (map, table, order panel), the page scrolls as a whole and the map has a fixed height. Below 640 px the header has two rows, the table drops the Type, Created and arrow columns (the icon shows the type), the filter pills scroll sideways, the courier rows drop the weight bar, and picking an order scrolls to the order panel. Checked at 360 and 320 px: nothing is wider than the screen.
+13. **The region bar has a Done button and a ×.** Done stops editing; before, the only way out was to choose "— choose a courier —" in the select. The × folds the whole bar into a small "Regions" button so it does not cover the map (remembered). It asks first if region changes are unsaved, and the bar opens again by itself right after a courier is added, when their regions are to be chosen.
+
+### Reading
+
+14. **Text is 14px instead of the browser's 16px mixed with 13px**, and grey text is darker (slate-600 instead of slate-500). The order title, the order's kind, parcel and weight, and the courier names on the cards are large. Numbers use tabular figures, so km and kg line up in columns. The side panel and the table scroll without drawing scroll bars.
+15. **One colour per status, everywhere:** red only for broken data, amber for "no courier fits" and "outside regions" (before, "no courier fits" was red like broken data), the courier's colour for assigned orders, grey for free. Teal is used only for actions and for what is chosen.
+16. **A plain message when the courier list cannot be loaded.** If the candidates request fails (for example a server started before this change, which answers "No such API endpoint"), the order panel says so with the server's words and a "Try again" link, instead of showing "Checking couriers…" forever.
+
+### What I did not change, and why
+
+- **Drag-and-drop of an order onto a courier:** slower than a click or a key, awkward on a touchpad, and much more code.
+- **Region editing** stays as it was (a select, then clicks on the map). It already worked in a few clicks, and the original task asked for exactly this select.
+- **Russian texts from the mockups:** the project, its server messages and its tests are in English, and mixing languages would be worse than either.
+- **A dark theme:** it does not help any of the three goals.
+- **Frontend tests**, for the same reason as before: the rules live on the server. The new endpoint has Go tests. I drove the new flow in a headless browser: opening o23 (the oldest) shows Aziz chosen, "Give to Aziz" gives it to him and opens o01, Undo takes it back, and on o12 every courier is disabled with their reason, Kamola's being "Kamola does not work in Bektemir". I also measured the split (the table expands and the map comes back in 0.3 s; while dragging the bar is 0 px from the pointer) and the phone layout at 360 and 320 px.
 
 ## What I skipped and why
 
@@ -163,13 +233,13 @@ Other things in the data:
 
 `cd backend && go test ./...`
 
-- [domain/rules_test.go](backend/internal/domain/rules_test.go): each refusal (broken order, inactive courier, wrong kind, wrong region, parcel limit, weight limit), shared limit for pickups and deliveries, edge cases at the limit, the "nobody can take it" reasons, and how the nearest courier is chosen.
+- [domain/rules_test.go](backend/internal/domain/rules_test.go): each refusal (broken order, inactive courier, wrong kind, wrong region, parcel limit, weight limit), shared limit for pickups and deliveries, edge cases at the limit, the "nobody can take it" reasons, how the nearest courier is chosen, and the courier list for an order (allowed first, nearest on top, holder left out, auto-assign agrees with it).
 - [domain/courier_draft_test.go](backend/internal/domain/courier_draft_test.go): every way a new courier is refused.
 - [domain/route_test.go](backend/internal/domain/route_test.go): stop order, assignment order, leg sums, empty route, and a shorter order that is never worse.
 - [usecase/dispatcher_test.go](backend/internal/usecase/dispatcher_test.go): on the real seed data, broken orders never assignable, a region change keeps orders and marks them, unknown regions refused, a refused courier is not stored, a move refused or done, and auto-assign respects every rule and keeps hand assignments.
 - [seed/seed_test.go](backend/internal/seed/seed_test.go): every broken seed order is found with its reason.
 - [repository/memory/memory_test.go](backend/internal/repository/memory/memory_test.go): stored data cannot be changed from outside; ids and sequence numbers.
-- [transport/httpapi/api_test.go](backend/internal/transport/httpapi/api_test.go): requests sent by hand over HTTP, including bad JSON, wrong types, unknown fields and unknown ids, with status codes and messages.
+- [transport/httpapi/api_test.go](backend/internal/transport/httpapi/api_test.go): requests sent by hand over HTTP, including bad JSON, wrong types, unknown fields and unknown ids, with status codes and messages; the courier list for an order.
 - [config/config_test.go](backend/internal/config/config_test.go): reading `.env`, and flags winning over it.
 
 ## Architecture
@@ -193,12 +263,12 @@ backend/
       courier.go, order.go, kind.go, city.go, geo.go, load.go
       rules.go              CanTake (every assignment rule), WhyNobodyCanTake
       route.go              route in the order given; route_optimize.go the shorter order
-      nearest.go            how auto-assign picks the nearest courier
+      nearest.go            Candidates (every courier for an order, nearest marked), used by auto-assign
       courier_draft.go      checks for a new courier
       errors.go             Refusal (rule broken) and ValidationError (bad input)
     usecase/                what the dispatcher can do; one lock makes check + change atomic
       ports.go              Repository interface the use cases need
-      assign.go, couriers.go, auto_assign.go, overview.go
+      assign.go, candidates.go, couriers.go, auto_assign.go, overview.go
     repository/memory/      in-memory Repository (returns copies)
     seed/                   reads data.json / regions.geojson, marks broken orders
     transport/httpapi/      router, handlers, request/response DTOs, error → status mapping
@@ -210,21 +280,24 @@ backend/
 ```
 frontend/src/
   main.tsx                  entry: router + App
-  app/                      App (loading), Dashboard (layout), Header, SideTabs,
+  app/                      App (loading), Dashboard (layout), Header, SideTabs (Order / Couriers),
                             SidePanelRoutes, routes.ts (addresses), useAppRoute (address → selection)
   api/                      client.ts (fetch + ApiError), dispatchApi.ts (endpoints), types.ts (JSON shapes)
   config/env.ts             VITE_* settings from .env
-  domain/                   pure logic, no React: formatting, form checks, rule hints, colours
-  hooks/                    shared: useDispatchState (TanStack Query), useStateMutation (change + reload), useToast
+  domain/                   pure logic, no React: formatting, form checks, colours
+  hooks/                    shared: useDispatchState (TanStack Query, reloads every 15 s), useStateMutation (change + reload),
+                            useToast (with Undo), useStoredFlag
   features/                 one folder per part of the page, one component per file
-    map/                    MapView, RegionsLayer, OrderMarker, MapClickCatcher, Legend, mapStyles.ts
+    map/                    MapView, RegionsLayer, OrderMarker, MapClickCatcher, KeepInView, Legend (on the map), mapStyles.ts
     regions/                RegionEditor, RegionChip, useRegionEditor
-    couriers/               CourierPanel, CourierCard, LoadMeter, RouteStops, StopLabel, RouteTotal, UnassignableList
-    orders/                 OrdersPanel, OrderFilters, OrderRow, OrderStatus, AssignBox, OrderDetails,
-                            CourierPicker, useOrderActions
+    couriers/               CourierPanel, CourierCard, MiniMeter, LoadMeter, RouteStops, StopLabel, RouteTotal, UnassignableList
+    orders/                 OrdersTable (under the map), OrderFilters, OrderRow, OrderStatus, OrderPanel (right),
+                            AssignBox, OrderDetails, CandidatePicker, useOrderList, useCandidates, useOrderActions,
+                            useOrderQuery, orderFilter.ts
     add-courier/            AddCourierForm, useCourierForm (React Hook Form + zod schema from domain/courierForm.ts)
     auto-assign/            AutoAssignReport, useAutoAssign
-  shared/ui/                Button, Card, CardHeader, Tag, Alert, Toast, Swatch, Checkbox, FormField, styles.ts
+  shared/ui/                Button, Card, CardHeader, Tag, Alert, Toast, Swatch, Checkbox, FormField, icons, arrowPath, styles.ts
+                            (colours: teal `brand-*` and `navy-*` tokens in index.css)
 data/                       data.json, regions.geojson (seed)
 ```
 
@@ -234,3 +307,4 @@ Imports use the `@/` alias for `src/`. Components only draw; state and server ca
 
 - **Time:** _fill in_.
 - **AI:** I built this with Claude Code (an AI coding assistant). It read the task, wrote the backend, tests, frontend and this README, and checked the page in a headless browser. I reviewed the decisions above and the commits.
+- **AI, follow-up task:** I used Claude Code the same way. I went through each possible change with it before any code was written, then chose the set above. It wrote the candidates endpoint and its tests, the page changes and this section, and drove the new flow in a headless browser. When I gave it mockups of the look I wanted, it rebuilt the layout after them (keeping English).

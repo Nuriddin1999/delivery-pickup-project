@@ -24,6 +24,12 @@ export function OrderMarker({ order: o, courier, color, selected, onSelect }: Pr
       zIndexOffset={selected ? 900 : 0}
       eventHandlers={{ click: onSelect }}
     >
+      {selected && (
+        <Tooltip permanent direction="top" offset={[0, -22]} className="rounded-md! border-slate-300! px-2! py-0.5! text-[13px]! font-bold! text-slate-900!">
+          {o.id}
+        </Tooltip>
+      )}
+      {!selected && (
       <Tooltip direction="top" offset={[0, -12]}>
         <b>{o.id}</b> · {kindLabel(o.type)} · {o.region} · {formatKg(o.weight_kg)}
         <br />
@@ -35,6 +41,7 @@ export function OrderMarker({ order: o, courier, color, selected, onSelect }: Pr
           </>
         )}
       </Tooltip>
+      )}
     </Marker>
   );
 }

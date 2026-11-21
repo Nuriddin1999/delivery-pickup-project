@@ -1,6 +1,5 @@
 import type { DispatchState } from "@/api/types";
 import type { ShowPoint } from "@/features/map/usePointHighlight";
-import { Checkbox } from "@/shared/ui/Checkbox";
 import { CourierCard } from "./CourierCard";
 import { UnassignableList } from "./UnassignableList";
 
@@ -15,22 +14,28 @@ interface Props {
   onShowPoint?: ShowPoint;
 }
 
-/** Every courier with load, stops and km, then the orders nobody can take. */
+/** Every courier as one line (active first), then the orders nobody can take. */
 export function CourierPanel({ state, colors, focusedId, showShorter, onFocus, onShowShorter, onSelectOrder, onShowPoint }: Props) {
+  // Inactive couriers cannot take anything today, so they go to the bottom.
+  const couriers = [...state.couriers].sort((a, b) => Number(b.active) - Number(a.active));
   return (
-    <div className="flex flex-col gap-2.5">
-      <Checkbox checked={showShorter} onChange={onShowShorter}>
-        Show stops in the shorter order (bonus: better routes)
-      </Checkbox>
+    <div className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-[1fr_60px_88px_64px] gap-2.5 px-4 text-xs text-slate-500 max-sm:grid-cols-[1fr_56px_64px]">
+        <span>Courier</span>
+        <span>Parcels</span>
+        <span className="max-sm:hidden">Weight, kg</span>
+        <span className="text-right">Route</span>
+      </div>
 
-      {state.couriers.map((c) => (
+      {couriers.map((c) => (
         <CourierCard
           key={c.id}
           courier={c}
           color={colors[c.id]}
-          focused={focusedId === c.id}
+          open={focusedId === c.id}
           showShorter={showShorter}
-          onToggleFocus={() => onFocus(focusedId === c.id ? null : c.id)}
+          onToggle={() => onFocus(focusedId === c.id ? null : c.id)}
+          onShowShorter={onShowShorter}
           onSelectOrder={onSelectOrder}
           onShowPoint={onShowPoint}
         />

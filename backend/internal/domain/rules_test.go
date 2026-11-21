@@ -117,3 +117,41 @@ func TestChooseNearest(t *testing.T) {
 		t.Error("nobody works in Bektemir, expected no choice")
 	}
 }
+
+func TestCandidates(t *testing.T) {
+	hub := Point{41.30, 69.28}
+	near := kamola()
+	near.ID, near.Name, near.Start = "near", "Near", Point{41.26, 69.22}
+	far := kamola()
+	far.ID, far.Name, far.Start = "far", "Far", Point{41.40, 69.40}
+	off := kamola()
+	off.ID, off.Name, off.Active = "off", "Off", false
+	holder := kamola()
+	holder.ID, holder.Name = "holder", "Holder"
+
+	o := order(Pickup, "Sergeli", 1)
+	o.Location = &Point{41.25, 69.21}
+	o.CourierID = "holder"
+	orders := []Order{o}
+
+	got := Candidates(o, []Courier{off, far, holder, near}, orders, hub)
+	ids := make([]string, len(got))
+	for i, c := range got {
+		ids[i] = c.Courier.ID
+	}
+	if strings.Join(ids, ",") != "near,far,off" {
+		t.Fatalf("order = %v, want near,far,off (allowed by km, refused last, holder left out)", ids)
+	}
+	if !got[0].Nearest || got[1].Nearest || got[0].AddedKm >= got[1].AddedKm {
+		t.Errorf("nearest/added km wrong: %+v", got[:2])
+	}
+	if got[2].Allowed() || got[2].Refusal.Code != CodeInactive {
+		t.Errorf("inactive courier should be refused with its reason: %+v", got[2])
+	}
+
+	// Auto-assign picks the same courier the list marks as nearest.
+	o.CourierID = ""
+	if choice, ok, _ := ChooseNearest(o, []Courier{off, far, near}, nil, hub); !ok || choice.Courier.ID != "near" {
+		t.Errorf("ChooseNearest = %v %v, want near", choice.Courier.ID, ok)
+	}
+}

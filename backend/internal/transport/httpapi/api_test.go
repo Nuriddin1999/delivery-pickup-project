@@ -174,3 +174,37 @@ func TestUnassignAutoAssignAndUnknownEndpoint(t *testing.T) {
 		t.Errorf("unknown endpoint: %d", status)
 	}
 }
+
+func TestCandidatesOverHTTP(t *testing.T) {
+	srv := newServer(t)
+	// o13: pickup in Mirzo Ulug'bek. Only Dilnoza does pickups there.
+	status, body := call(t, srv, "GET", "/api/orders/o13/candidates", "")
+	if status != 200 {
+		t.Fatalf("status %d %v", status, body)
+	}
+	cands := body["candidates"].([]any)
+	if len(cands) != 6 {
+		t.Fatalf("want all 6 couriers, got %d", len(cands))
+	}
+	first := cands[0].(map[string]any)
+	if first["courier_id"] != "c2" || first["allowed"] != true || first["nearest"] != true {
+		t.Errorf("first candidate = %v, want Dilnoza allowed and nearest", first)
+	}
+	for _, c := range cands[1:] {
+		c := c.(map[string]any)
+		if c["allowed"] == true || c["reason"] == "" {
+			t.Errorf("only Dilnoza may take o13, got %v", c)
+		}
+	}
+
+	// The holder is left out once the order is assigned.
+	call(t, srv, "PUT", "/api/orders/o13/courier", `{"courier_id":"c2"}`)
+	_, body = call(t, srv, "GET", "/api/orders/o13/candidates", "")
+	if n := len(body["candidates"].([]any)); n != 5 {
+		t.Errorf("holder should be left out: %d candidates", n)
+	}
+
+	if status, _ := call(t, srv, "GET", "/api/orders/o99/candidates", ""); status != 404 {
+		t.Errorf("unknown order: %d", status)
+	}
+}

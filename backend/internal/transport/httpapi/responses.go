@@ -100,6 +100,23 @@ type unplacedJSON struct {
 	Reason  string `json:"reason"`
 }
 
+type candidatesResponse struct {
+	OrderID    string          `json:"order_id"`
+	Candidates []candidateJSON `json:"candidates"`
+}
+
+// candidateJSON is one courier in the order's "give to" list. Code and
+// Reason are set when the rules refuse; AddedKm and Nearest when they allow.
+type candidateJSON struct {
+	CourierID string   `json:"courier_id"`
+	Allowed   bool     `json:"allowed"`
+	Code      string   `json:"code,omitempty"`
+	Reason    string   `json:"reason,omitempty"`
+	AddedKm   float64  `json:"added_km"`
+	Nearest   bool     `json:"nearest"`
+	Load      loadJSON `json:"load"`
+}
+
 type errorResponse struct {
 	Code   string            `json:"code"`
 	Error  string            `json:"error"`
@@ -177,6 +194,21 @@ func toAutoAssignResponse(r usecase.AutoAssignResult) autoAssignResponse {
 	}
 	for _, u := range r.Unplaced {
 		res.Unplaced = append(res.Unplaced, unplacedJSON{OrderID: u.OrderID, Reason: u.Reason})
+	}
+	return res
+}
+
+func toCandidatesResponse(orderID string, cands []domain.Candidate) candidatesResponse {
+	res := candidatesResponse{OrderID: orderID, Candidates: make([]candidateJSON, 0, len(cands))}
+	for _, c := range cands {
+		cj := candidateJSON{
+			CourierID: c.Courier.ID, Allowed: c.Allowed(), AddedKm: c.AddedKm, Nearest: c.Nearest,
+			Load: loadJSON{Parcels: c.Load.Parcels, Kg: c.Load.Kg},
+		}
+		if c.Refusal != nil {
+			cj.Code, cj.Reason = c.Refusal.Code, c.Refusal.Message
+		}
+		res.Candidates = append(res.Candidates, cj)
 	}
 	return res
 }

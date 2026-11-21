@@ -1,7 +1,9 @@
-import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from "react-leaflet";
+import { MapContainer, Marker, Polyline, ScaleControl, TileLayer, Tooltip } from "react-leaflet";
 import type { DispatchState, Point, Route } from "@/api/types";
 import { env } from "@/config/env";
 import { cn } from "@/shared/ui/styles";
+import { FitToContainer } from "./FitToContainer";
+import { KeepInView } from "./KeepInView";
 import { hubIcon, mapModeClass, newStartIcon, regionStyle, startIcon, type MapMode } from "./mapStyles";
 import { MapClickCatcher } from "./MapClickCatcher";
 import { OrderMarker } from "./OrderMarker";
@@ -26,11 +28,15 @@ interface Props {
   startPreview: Point | null;
   /** a point to pulse and fly to, e.g. a courier's start */
   highlight?: PointHighlight | null;
+  /** couriers allowed to take the selected order; their start pins stand out, the rest fade */
+  allowedCourierIds?: Set<string> | null;
 }
 
 export function MapView(props: Props) {
   const { state, colors, mode } = props;
   const couriersById = Object.fromEntries(state.couriers.map((c) => [c.id, c]));
+  const selected = state.orders.find((o) => o.id === props.selectedOrderId);
+  const allowed = props.allowedCourierIds;
 
   const onRegionClick = (name: string, p: Point) => {
     if (mode === "regions") props.onToggleRegion(name);
@@ -38,26 +44,30 @@ export function MapView(props: Props) {
   };
 
   return (
-    <MapContainer center={[state.hub.lat, state.hub.lng]} zoom={env.mapZoom} className={cn("min-h-0 flex-1", mapModeClass[mode])} doubleClickZoom={mode === "none"}>
+    <MapContainer center={[state.hub.lat, state.hub.lng]} zoom={env.mapZoom} className={cn("h-full w-full", mapModeClass[mode])} doubleClickZoom={mode === "none"}>
       <TileLayer attribution={env.tileAttribution} url={env.tileUrl} />
+      <ScaleControl position="bottomright" imperial={false} />
       <MapClickCatcher enabled={mode === "pickStart"} onPick={props.onPickPoint} />
+      <KeepInView point={selected?.location ?? null} />
+      <FitToContainer />
 
-      {props.shapes && <RegionsLayer shapes={props.shapes} style={(name) => regionStyle(name, mode, props.draftRegions, props.draftColor)} onClick={onRegionClick} />}
+      {props.shapes && <RegionsLayer shapes={props.shapes} style={(name) => regionStyle(state.regions.indexOf(name), name, mode, props.draftRegions, props.draftColor)} onClick={onRegionClick} />}
 
       {props.route && props.route.route.stops.length > 1 && (
         <Polyline positions={props.route.route.stops.map((s) => [s.point.lat, s.point.lng] as [number, number])} pathOptions={{ color: props.route.color, weight: 4, opacity: 0.8, dashArray: "8 6" }} />
       )}
 
       <Marker position={[state.hub.lat, state.hub.lng]} icon={hubIcon} zIndexOffset={1000}>
-        <Tooltip direction="top" offset={[0, -14]}>
+        <Tooltip direction="top" offset={[0, -20]}>
           {state.hub.name}: every parcel passes here
         </Tooltip>
       </Marker>
 
       {state.couriers.map((c) => (
-        <Marker key={c.id} position={[c.start.lat, c.start.lng]} icon={startIcon(colors[c.id], c.name)}>
+        <Marker key={c.id} position={[c.start.lat, c.start.lng]} icon={startIcon(colors[c.id], c.name, !allowed ? "normal" : allowed.has(c.id) ? "allowed" : "faded")} zIndexOffset={allowed?.has(c.id) ? 800 : 0}>
           <Tooltip direction="top" offset={[0, -10]}>
             {c.name} starts here
+            {allowed?.has(c.id) && ` · can take ${props.selectedOrderId}`}
           </Tooltip>
         </Marker>
       ))}

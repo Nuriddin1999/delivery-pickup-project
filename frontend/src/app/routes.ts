@@ -17,10 +17,10 @@ export const patterns = {
   order: "/orders/:orderId",
 };
 
-export type Tab = "couriers" | "orders" | "add";
+/** The side panel: the open order, the couriers, or the add-courier form (opened from the header). */
+export type Tab = "order" | "couriers" | "add";
 
 export const tabs: { id: Tab; label: string; to: string }[] = [
+  { id: "order", label: "Order", to: paths.orders },
   { id: "couriers", label: "Couriers", to: paths.couriers },
-  { id: "orders", label: "Orders", to: paths.orders },
-  { id: "add", label: "Add courier", to: paths.newCourier },
 ];

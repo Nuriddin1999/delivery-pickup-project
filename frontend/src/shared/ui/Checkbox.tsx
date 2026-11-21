@@ -10,7 +10,7 @@ interface Props {
 export function Checkbox({ checked, onChange, children }: Props) {
   return (
     <label className="inline-flex cursor-pointer items-center gap-1.5">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" className="accent-brand-600" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {children}
     </label>
   );

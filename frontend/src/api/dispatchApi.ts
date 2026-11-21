@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { AutoAssignResult, Courier, DispatchState, NewCourierInput, Order } from "./types";
+import type { AutoAssignResult, CandidateList, Courier, DispatchState, NewCourierInput, Order } from "./types";
 
 const id = encodeURIComponent;
 
@@ -11,6 +11,8 @@ export const dispatchApi = {
   addCourier: (input: NewCourierInput) => request<Courier>("POST", "/api/couriers", input),
   setRegions: (courierId: string, regions: string[]) => request<Courier>("PUT", `/api/couriers/${id(courierId)}/regions`, { regions }),
 
+  /** Every courier the order could go to: allowed ones first, nearest on top. */
+  candidates: (orderId: string) => request<CandidateList>("GET", `/api/orders/${id(orderId)}/candidates`),
   /** Assigns a free order, or moves an assigned one to another courier. */
   assign: (orderId: string, courierId: string) => request<Order>("PUT", `/api/orders/${id(orderId)}/courier`, { courier_id: courierId }),
   unassign: (orderId: string) => request<Order>("DELETE", `/api/orders/${id(orderId)}/courier`),
