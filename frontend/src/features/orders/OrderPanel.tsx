@@ -7,22 +7,24 @@ interface Props {
   colors: Record<string, string>;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  /** opens the order in the Assigned list, after it got its first courier */
-  onAssigned: (id: string) => void;
+  /** opens the order in the list it now belongs to: Assigned after it got a courier, Free after it lost one */
+  onShowIn: (id: string, list: "taken" | "free") => void;
   onChanged: (message: string, undo?: Undo) => void;
 }
 
 /**
  * The "Order" tab: the open order with its couriers. When an order gets its
- * first courier, the table switches to Assigned with that order still open,
- * so the dispatcher sees where it went.
+ * first courier, the table switches to Assigned, and when it is taken off,
+ * to Free; either way that order stays open and highlighted, so the
+ * dispatcher sees where it went.
  */
-export function OrderPanel({ state, colors, selectedId, onSelect, onAssigned, onChanged }: Props) {
+export function OrderPanel({ state, colors, selectedId, onSelect, onShowIn, onChanged }: Props) {
   const couriersById = Object.fromEntries(state.couriers.map((c) => [c.id, c]));
   const selected = state.orders.find((o) => o.id === selectedId);
 
   const changed = (orderId: string, change: OrderChange) => {
-    if (change.newlyAssigned) onAssigned(orderId);
+    if (change.kind === "given") onShowIn(orderId, "taken");
+    if (change.kind === "takenOff") onShowIn(orderId, "free");
     onChanged(change.message, change.undo);
   };
 

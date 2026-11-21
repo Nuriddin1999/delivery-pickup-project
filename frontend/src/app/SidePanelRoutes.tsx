@@ -44,7 +44,7 @@ export function SidePanelRoutes(p: Props) {
       colors={p.colors}
       selectedId={p.route.selectedOrderId}
       onSelect={p.route.selectOrder}
-      onAssigned={(id) => p.route.openOrderWith(id, p.orderList.searchWith({ show: "taken" }))}
+      onShowIn={(id, list) => p.route.openOrderWith(id, p.orderList.searchWith({ show: list }))}
       onChanged={p.onOrderChanged}
     />
   );

@@ -16,8 +16,11 @@ import { useOrderActions } from "./useOrderActions";
 export interface OrderChange {
   message: string;
   undo: Undo;
-  /** a free order got its first courier (the table then switches to Assigned) */
-  newlyAssigned: boolean;
+  /**
+   * given: a free order got its first courier (the table then shows Assigned);
+   * takenOff: it lost its courier (the table then shows Free); moved: another courier.
+   */
+  kind: "given" | "moved" | "takenOff";
 }
 
 interface Props {
@@ -56,15 +59,15 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
       setPicked(null);
       onChanged(
         current
-          ? { message: `${order.id} moved from ${current.name} to ${target.name}`, undo: () => dispatchApi.assign(order.id, current.id), newlyAssigned: false }
-          : { message: `${order.id} given to ${target.name}`, undo: () => dispatchApi.unassign(order.id), newlyAssigned: true },
+          ? { message: `${order.id} moved from ${current.name} to ${target.name}`, undo: () => dispatchApi.assign(order.id, current.id), kind: "moved" }
+          : { message: `${order.id} given to ${target.name}`, undo: () => dispatchApi.unassign(order.id), kind: "given" },
       );
     });
   };
 
   const takeOff = () => {
     if (!current || actions.busy) return;
-    actions.unassign(() => onChanged({ message: `${order.id} taken off ${current.name}`, undo: () => dispatchApi.assign(order.id, current.id), newlyAssigned: false }));
+    actions.unassign(() => onChanged({ message: `${order.id} taken off ${current.name}`, undo: () => dispatchApi.assign(order.id, current.id), kind: "takenOff" }));
   };
 
   const verb = current ? "Move" : "Give";
