@@ -80,6 +80,7 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
         <section ref={split.columnRef} className="flex min-h-0 min-w-0 flex-1 flex-col max-[1000px]:flex-none max-[1000px]:gap-3">
           {/* The map's share of the column; 0 when the table is expanded. The bar below takes 12px. */}
           <div
+            ref={split.mapBoxRef}
             // On a narrow screen the map has a fixed height (the bar is hidden); "!" wins over the inline height.
             className={cn("flex-none overflow-hidden transition-[height,opacity]", slide, split.tableExpanded ? "opacity-0" : "max-[1000px]:h-[55svh]!")}
             style={{ height: split.tableExpanded ? 0 : `calc(${split.mapShare * 100}% - 6px)` }}

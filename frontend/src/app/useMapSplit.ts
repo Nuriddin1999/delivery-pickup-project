@@ -20,23 +20,49 @@ export function useMapSplit() {
   const [tableExpanded, setTableExpanded] = useStoredFlag("dispatch.tableExpanded", false);
   const [dragging, setDragging] = useState(false);
   const columnRef = useRef<HTMLElement>(null);
+  /** the box whose height is the map's share */
+  const mapBoxRef = useRef<HTMLDivElement>(null);
 
-  /** Dragging the bar: the map's share follows the pointer, without animation. */
+  /**
+   * Dragging the bar. The map's height follows the pointer by writing it
+   * straight to the element, at most once per frame, and with no
+   * transition. React (and storage) only hear about it when the pointer is
+   * released: re-rendering the whole page on every mouse move made the bar
+   * lag behind the pointer.
+   */
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     const column = columnRef.current;
-    if (!column || e.button !== 0) return;
+    const box = mapBoxRef.current;
+    if (!column || !box || e.button !== 0) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     setDragging(true);
+    box.style.transition = "none";
     const rect = column.getBoundingClientRect();
-    const move = (ev: globalThis.PointerEvent) => setShare(clamp((ev.clientY - rect.top) / rect.height));
+    let next = share;
+    let frame = 0;
+
+    const move = (ev: globalThis.PointerEvent) => {
+      next = clamp((ev.clientY - rect.top) / rect.height);
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        box.style.height = `calc(${next * 100}% - 6px)`;
+      });
+    };
     const up = () => {
+      cancelAnimationFrame(frame);
+      box.style.height = `calc(${next * 100}% - 6px)`;
+      box.style.transition = "";
       setDragging(false);
+      setShare(next);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
   /** Arrow keys move the bar too, for keyboard users. */
@@ -49,6 +75,7 @@ export function useMapSplit() {
 
   return {
     columnRef,
+    mapBoxRef,
     /** the map's part of the column height, 0 when the table is expanded */
     mapShare: tableExpanded ? 0 : share,
     share,
