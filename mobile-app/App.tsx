@@ -1,4 +1,5 @@
 import { Picker } from '@react-native-picker/picker';
+import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -63,7 +64,8 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', padding: 24 },
+  // Content starts at the top, below the status bar plus some air.
+  container: { flex: 1, backgroundColor: '#fff', padding: 24, paddingTop: Constants.statusBarHeight + 48 },
   block: { gap: 12 },
   text: { fontSize: 18, fontWeight: '600', textAlign: 'center' },
   muted: { fontSize: 14, color: '#64748b', textAlign: 'center' },
