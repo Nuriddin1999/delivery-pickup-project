@@ -39,7 +39,7 @@ export function Select({ options, value, placeholder, open, onOpenChange, onChan
 
       {open && (
         <View style={styles.list}>
-          <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+          <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {options.map((o) => {
               const selected = o.value === value;
               return (
