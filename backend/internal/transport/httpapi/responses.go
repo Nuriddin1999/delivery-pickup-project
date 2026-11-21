@@ -76,6 +76,7 @@ type orderResponse struct {
 	Problems       []string   `json:"problems,omitempty"`
 	Notes          []string   `json:"notes,omitempty"`
 	OutsideRegions bool       `json:"outside_regions"`
+	DoneAt         *time.Time `json:"done_at,omitempty"`
 }
 
 type unassignableJSON struct {
@@ -175,6 +176,10 @@ func toOrderResponse(o domain.Order, outside bool) orderResponse {
 	if o.Location != nil {
 		p := toPointJSON(*o.Location)
 		res.Location = &p
+	}
+	if o.Done() {
+		t := o.DoneAt
+		res.DoneAt = &t
 	}
 	return res
 }

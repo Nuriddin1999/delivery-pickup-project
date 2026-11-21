@@ -18,6 +18,11 @@ const (
 	CodeParcelLimit     = "parcel_limit"
 	CodeWeightLimit     = "weight_limit"
 	CodeKindInUse       = "kind_in_use"
+	CodeNotYourOrder    = "not_your_order"
+	CodeAlreadyDone     = "already_done"
+	CodeOutOfOrder      = "out_of_order"
+	CodeOrderDone       = "order_done"
+	CodePastHub         = "past_hub"
 )
 
 // Refusal is a rule a request broke, with a sentence for the dispatcher.

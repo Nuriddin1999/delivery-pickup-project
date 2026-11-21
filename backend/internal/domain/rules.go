@@ -22,6 +22,8 @@ func CanTake(c Courier, o Order, load Load) *Refusal {
 		return Refuse(CodeWrongKind, "%s does not do %s", c.Name, o.Type.Plural())
 	case !c.WorksIn(o.Region):
 		return Refuse(CodeWrongRegion, "%s does not work in %s", c.Name, o.Region)
+	case o.Type == Pickup && load.PastHub:
+		return Refuse(CodePastHub, "%s has already left the hub with deliveries, so a new pickup does not fit today's route", c.Name)
 	case load.Parcels+1 > c.MaxParcels:
 		return Refuse(CodeParcelLimit, "%s has no room: already %d of %d parcels today",
 			c.Name, load.Parcels, c.MaxParcels)

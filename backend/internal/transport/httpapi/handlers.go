@@ -103,6 +103,16 @@ func (h *handlers) autoAssign(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toAutoAssignResponse(h.dispatcher.AutoAssign()))
 }
 
+// markStopDone takes no body: the path says who marks which stop.
+func (h *handlers) markStopDone(w http.ResponseWriter, r *http.Request) {
+	o, err := h.dispatcher.MarkStopDone(r.PathValue("id"), r.PathValue("orderId"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toOrderResponse(o, false))
+}
+
 func notFound(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusNotFound, errorResponse{Code: domain.CodeNotFound, Error: "No such API endpoint: " + r.Method + " " + r.URL.Path})
 }

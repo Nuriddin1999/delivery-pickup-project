@@ -20,6 +20,7 @@ type Dispatcher interface {
 	UnassignOrder(orderID string) (domain.Order, error)
 	AutoAssign() usecase.AutoAssignResult
 	OrderCandidates(orderID string) ([]domain.Candidate, error)
+	MarkStopDone(courierID, orderID string) (domain.Order, error)
 }
 
 type handlers struct {
@@ -42,6 +43,7 @@ func NewRouter(d Dispatcher, shapes []byte, staticDir string) http.Handler {
 	mux.HandleFunc("PUT /api/orders/{id}/courier", h.assignOrder)
 	mux.HandleFunc("DELETE /api/orders/{id}/courier", h.unassignOrder)
 	mux.HandleFunc("POST /api/auto-assign", h.autoAssign)
+	mux.HandleFunc("POST /api/couriers/{id}/stops/{orderId}/done", h.markStopDone)
 	mux.HandleFunc("/api/", notFound)
 
 	if staticDir != "" {

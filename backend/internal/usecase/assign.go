@@ -17,6 +17,11 @@ func (d *Dispatcher) AssignOrder(orderID, courierID string) (domain.Order, error
 	if !ok {
 		return domain.Order{}, domain.NotFound("courier", courierID)
 	}
+	if o.Assigned() {
+		if r := domain.CanRelease(o); r != nil {
+			return domain.Order{}, r
+		}
+	}
 	if o.CourierID == c.ID {
 		return domain.Order{}, domain.Refuse(domain.CodeAlreadyAssigned, "Order %s is already with %s", o.ID, c.Name)
 	}
@@ -40,6 +45,9 @@ func (d *Dispatcher) UnassignOrder(orderID string) (domain.Order, error) {
 	}
 	if !o.Assigned() {
 		return domain.Order{}, domain.Refuse(domain.CodeNotAssigned, "Order %s has no courier", o.ID)
+	}
+	if r := domain.CanRelease(o); r != nil {
+		return domain.Order{}, r
 	}
 
 	o.Unassign()
