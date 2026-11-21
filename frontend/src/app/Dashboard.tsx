@@ -9,6 +9,7 @@ import { usePointHighlight } from "@/features/map/usePointHighlight";
 import { RegionEditor } from "@/features/regions/RegionEditor";
 import { useRegionEditor } from "@/features/regions/useRegionEditor";
 import { useAutoAssign } from "@/features/auto-assign/useAutoAssign";
+import { useHotkeys } from "@/hooks/useHotkeys";
 import { useToast } from "@/hooks/useToast";
 import { Toast } from "@/shared/ui/Toast";
 import { Header } from "./Header";
@@ -25,9 +26,10 @@ interface Props {
 /** The page layout: header, map with its region toolbar, and the side panel. */
 export function Dashboard({ state, shapes, loadError }: Props) {
   const route = useAppRoute();
-  const { toast, showToast } = useToast();
+  const { toast, showToast, undo } = useToast();
   const regions = useRegionEditor(state.couriers);
-  const autoAssign = useAutoAssign(showToast);
+  const autoAssign = useAutoAssign((message) => showToast(message, undefined, "error"));
+  useHotkeys({ u: undo ?? undefined });
   const pointHighlight = usePointHighlight();
   const [showShorter, setShowShorter] = useState(false);
   const [newStart, setNewStart] = useState<StartFields>(emptyStart);
@@ -90,7 +92,7 @@ export function Dashboard({ state, shapes, loadError }: Props) {
         </aside>
       </main>
 
-      {toast && <Toast message={toast} />}
+      {toast && <Toast key={toast.id} message={toast.text} tone={toast.tone} onUndo={undo} />}
       {loadError && <Toast message={loadError} tone="error" />}
     </div>
   );

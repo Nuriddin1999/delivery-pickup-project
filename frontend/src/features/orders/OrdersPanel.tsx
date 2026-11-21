@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { DispatchState } from "@/api/types";
+import type { Undo } from "@/hooks/useToast";
 import { Card } from "@/shared/ui/Card";
 import { hintText } from "@/shared/ui/styles";
 import { AssignBox } from "./AssignBox";
@@ -12,7 +13,7 @@ interface Props {
   colors: Record<string, string>;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  onChanged: (message: string) => void;
+  onChanged: (message: string, undo?: Undo) => void;
 }
 
 /** The selected order's assign box, then every order in a filterable list. */
@@ -25,7 +26,7 @@ export function OrdersPanel({ state, colors, selectedId, onSelect, onChanged }: 
   return (
     <div className="flex flex-col gap-2.5">
       {selected ? (
-        <AssignBox key={selected.id} order={selected} state={state} couriersById={couriersById} onClose={() => onSelect(null)} onChanged={onChanged} />
+        <AssignBox key={selected.id} order={selected} state={state} couriersById={couriersById} colors={colors} onClose={() => onSelect(null)} onChanged={(c) => onChanged(c.message, c.undo)} />
       ) : (
         <Card>
           <p className={hintText}>Pick an order on the map or in the list below to give it to a courier.</p>

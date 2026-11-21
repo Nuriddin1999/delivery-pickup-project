@@ -76,6 +76,25 @@ export interface NewCourierInput {
   start: Point;
 }
 
+/** One courier in an order's "give to" list, checked by the server. */
+export interface Candidate {
+  courier_id: string;
+  allowed: boolean;
+  /** refusal code and sentence, when not allowed */
+  code?: string;
+  reason?: string;
+  /** km added to the courier's route, when allowed */
+  added_km: number;
+  /** the allowed courier whose route grows the least (same rule as auto-assign) */
+  nearest: boolean;
+  load: { parcels: number; kg: number };
+}
+
+export interface CandidateList {
+  order_id: string;
+  candidates: Candidate[];
+}
+
 export interface AutoAssignResult {
   assigned: { order_id: string; courier_id: string; added_km: number }[];
   unplaced: { order_id: string; reason: string }[];

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import type { Courier, DispatchState } from "@/api/types";
 import type { StartFields } from "@/domain/courierForm";
+import type { Undo } from "@/hooks/useToast";
 import { AddCourierForm } from "@/features/add-courier/AddCourierForm";
 import { CourierPanel } from "@/features/couriers/CourierPanel";
 import type { ShowPoint } from "@/features/map/usePointHighlight";
@@ -16,7 +17,7 @@ interface Props {
   onShowShorter: (v: boolean) => void;
   newStart: StartFields;
   onNewStartChange: (s: StartFields) => void;
-  onOrderChanged: (message: string) => void;
+  onOrderChanged: (message: string, undo?: Undo) => void;
   onCourierCreated: (c: Courier) => void;
   onShowPoint: ShowPoint;
 }

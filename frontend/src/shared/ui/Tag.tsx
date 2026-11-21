@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 import { cn } from "./styles";
 
-type Tone = "plain" | "bad" | "warn";
+type Tone = "plain" | "bad" | "warn" | "info" | "ok";
 
 const tones: Record<Tone, string> = {
   plain: "bg-slate-200 text-slate-700",
   bad: "bg-red-100 text-red-600",
   warn: "bg-amber-100 text-amber-800",
+  info: "bg-blue-100 text-blue-700",
+  ok: "bg-green-100 text-green-800",
 };
 
 interface Props {

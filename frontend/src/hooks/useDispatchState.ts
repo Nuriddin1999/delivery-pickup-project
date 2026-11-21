@@ -5,9 +5,15 @@ import { dispatchApi } from "@/api/dispatchApi";
 /** Query key of the dispatch state; every change invalidates it. */
 export const stateKey = ["state"] as const;
 
+/**
+ * How often the state is reloaded without any action, so changes made by
+ * another dispatcher show up during the day.
+ */
+export const POLL_MS = 15_000;
+
 /** The dispatch state and the region shapes (loaded once). */
 export function useDispatchState() {
-  const state = useQuery({ queryKey: stateKey, queryFn: dispatchApi.state });
+  const state = useQuery({ queryKey: stateKey, queryFn: dispatchApi.state, refetchInterval: POLL_MS });
   const shapes = useQuery({ queryKey: ["regionShapes"], queryFn: dispatchApi.regionShapes, staleTime: Infinity });
   const error = state.error ?? shapes.error;
 
@@ -15,6 +21,8 @@ export function useDispatchState() {
     state: state.data ?? null,
     shapes: shapes.data ?? null,
     loadError: error ? errorMessage(error) : null,
+    /** when the state last came from the server (ms since epoch) */
+    updatedAt: state.dataUpdatedAt,
     refresh: () => void state.refetch(),
   };
 }
