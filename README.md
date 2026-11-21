@@ -27,6 +27,12 @@ cd backend && go run ./cmd/server       # API on SERVER_ADDR (:8080), loads DATA
 cd frontend && npm install && npm run dev # page on http://localhost:5173, /api goes to API_PROXY_TARGET
 ```
 
+Mobile app (React Native with Expo, for now it shows "Hello world"): see [mobile-app/README.md](mobile-app/README.md).
+
+```sh
+cd mobile-app && npm install && npx expo start   # scan the QR code with Expo Go
+```
+
 ## Settings (.env)
 
 All settings live in `.env` in the repository root; [.env.example](.env.example) is the committed template with every variable explained. `.env` itself is in `.gitignore`.
