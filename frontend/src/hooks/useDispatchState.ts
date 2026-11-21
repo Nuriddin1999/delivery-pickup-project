@@ -21,8 +21,6 @@ export function useDispatchState() {
     state: state.data ?? null,
     shapes: shapes.data ?? null,
     loadError: error ? errorMessage(error) : null,
-    /** when the state last came from the server (ms since epoch) */
-    updatedAt: state.dataUpdatedAt,
     refresh: () => void state.refetch(),
   };
 }

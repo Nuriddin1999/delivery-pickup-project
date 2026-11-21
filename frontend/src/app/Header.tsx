@@ -2,10 +2,8 @@ import { Link } from "react-router-dom";
 import { cn } from "@/shared/ui/styles";
 import { KeysHelp } from "./KeysHelp";
 import { paths } from "./routes";
-import { UpdatedAgo } from "./UpdatedAgo";
 
 interface Props {
-  updatedAt: number;
   autoAssignBusy: boolean;
   onAutoAssign: () => void;
   /** the order list's filter, kept on the add-courier link */
@@ -17,16 +15,15 @@ const todayFormat = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "nu
 
 const onDark = "rounded-lg border border-white/30 px-3 py-1.5 text-[13px] whitespace-nowrap text-white hover:bg-white/10 max-sm:px-2.5";
 
-/** Dark bar: the page name, today's date, data age, keys, auto-assign and add courier. */
-export function Header({ updatedAt, autoAssignBusy, onAutoAssign, search }: Props) {
+/** Dark bar: the page name, today's date, keys, auto-assign and add courier. */
+export function Header({ autoAssignBusy, onAutoAssign, search }: Props) {
   return (
     <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 bg-navy-900 px-5 py-2.5 text-white max-[1000px]:flex max-[1000px]:flex-wrap max-[1000px]:gap-x-3 max-[1000px]:gap-y-1 max-sm:px-3">
       <h1 className="m-0 text-xl font-bold tracking-tight whitespace-nowrap max-[1000px]:flex-1 max-sm:text-lg">Courier dispatch</h1>
       <span className="text-[15px] font-medium text-white/90 max-[1000px]:order-last max-[1000px]:w-full max-[1000px]:text-xs max-[1000px]:text-white/70">Today · {todayFormat.format(Date.now())}</span>
       <span className="flex items-center justify-end gap-2.5">
-        {/* No keyboard on a phone, and the data age matters less there: both hide. */}
-        <span className="flex items-center gap-2.5 max-sm:hidden">
-          <UpdatedAgo at={updatedAt} />
+        {/* No keyboard on a phone, so the keys help hides there. */}
+        <span className="max-sm:hidden">
           <KeysHelp />
         </span>
         <button

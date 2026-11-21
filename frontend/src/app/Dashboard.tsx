@@ -27,7 +27,6 @@ interface Props {
   state: DispatchState;
   shapes: GeoJSON.FeatureCollection | null;
   loadError: string | null;
-  updatedAt: number;
 }
 
 const panel = "overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm";
@@ -40,7 +39,7 @@ const NARROW = "(max-width: 1000px)";
  * top of it) with the order table under it; on the right the open order or
  * the couriers.
  */
-export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
+export function Dashboard({ state, shapes, loadError }: Props) {
   const route = useAppRoute();
   const { toast, showToast, undo } = useToast();
   const regions = useRegionEditor(state.couriers);
@@ -76,7 +75,7 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
 
   return (
     <div className="flex h-screen flex-col max-[1000px]:h-auto max-[1000px]:min-h-screen">
-      <Header updatedAt={updatedAt} autoAssignBusy={autoAssign.busy} onAutoAssign={autoAssign.run} search={route.search} />
+      <Header autoAssignBusy={autoAssign.busy} onAutoAssign={autoAssign.run} search={route.search} />
 
       <main className="flex min-h-0 flex-1 gap-3 p-3 max-[1000px]:flex-col max-sm:p-2">
         <section ref={split.columnRef} className="flex min-h-0 min-w-0 flex-1 flex-col max-[1000px]:flex-none max-[1000px]:gap-3">
