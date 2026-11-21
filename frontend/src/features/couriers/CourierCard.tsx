@@ -7,6 +7,7 @@ import { Checkbox } from "@/shared/ui/Checkbox";
 import { Swatch } from "@/shared/ui/Swatch";
 import { Tag } from "@/shared/ui/Tag";
 import { cn, mutedText } from "@/shared/ui/styles";
+import { KindToggles } from "./KindToggles";
 import { LoadMeter } from "./LoadMeter";
 import { MiniMeter } from "./MiniMeter";
 import { RouteStops } from "./RouteStops";
@@ -128,10 +129,8 @@ export function CourierCard({
         >
           <div className="min-h-0 overflow-hidden">
             <div className="mt-2 flex flex-col gap-1.5 border-t border-slate-100 pt-2">
-              <p className={mutedText}>
-                {c.kinds.map(kindLabel).join(" + ") || "no kinds"} ·{" "}
-                {c.regions.length ? c.regions.join(", ") : "no regions"}
-              </p>
+              <KindToggles courier={c} />
+              <p className={mutedText}>Regions: {c.regions.length ? c.regions.join(", ") : "none yet"}</p>
 
               <LoadMeter
                 label="Parcels"

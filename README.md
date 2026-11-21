@@ -73,6 +73,7 @@ Every error response is JSON: `{"code": "...", "error": "plain sentence"}`. A fo
 | GET | `/api/regions.geojson` | | region shapes |
 | POST | `/api/couriers` | `{name, kinds, max_parcels, max_kg, start:{lat,lng}, active?, regions?}` | 201, or 400 with `fields` |
 | PUT | `/api/couriers/{id}/regions` | `{regions: [...]}` | replaces the courier's regions |
+| PUT | `/api/couriers/{id}/kinds` | `{kinds: ["pickup", "delivery"]}` | replaces the courier's kinds of work: at least one; 409 `kind_in_use` when a kind is taken away while the courier holds orders of it |
 | GET | `/api/orders/{id}/candidates` | | every courier except the holder: `{courier_id, allowed, code?, reason?, added_km, nearest, load}`, allowed first, nearest on top |
 | PUT | `/api/orders/{id}/courier` | `{courier_id}` | assigns the order, or moves it if another courier holds it |
 | DELETE | `/api/orders/{id}/courier` | | takes the order off its courier |
@@ -142,7 +143,8 @@ Other things in the data:
   - Unknown JSON fields and wrong types (for example `"max_parcels": 2.5` or `"max_kg": "10"`) are refused with a field message.
 - **Weights** use a 1e-9 tolerance, so 12.1 + 2.9 kg fits a 15 kg limit despite float rounding.
 - **Courier colours** come from a fixed palette by the courier's position in the list.
-- Couriers cannot be edited (except regions), deactivated or deleted, and orders cannot be created. The task does not ask for this.
+- **Kinds of work can be changed** after a courier is added (pickups only → both, both → one). Adding a kind is always allowed. Taking one away is refused while the courier still holds orders of that kind ("Aziz still has 1 delivery: o06. Take it off or move it first"). Unlike a region change, a courier who no longer does deliveries could not deliver a parcel they hold, so the dispatcher moves those orders first. A courier keeps at least one kind.
+- Couriers cannot be edited otherwise (except regions and kinds), deactivated or deleted, and orders cannot be created. The task does not ask for this.
 
 ## Bonus parts
 
@@ -161,7 +163,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 
 | Way of working | Before | After |
 | --- | --- | --- |
-| Going through the free orders | Orders tab → scroll to the order → click it → open the courier select → pick a courier → Assign: **5 actions per order** | the next free order is already open and the nearest courier already chosen → "Give to Bekzod": **1 action per order** |
+| Going through the free orders | Orders tab → scroll to the order → click it → open the courier select → pick a courier → Assign: **5 actions per order** | click the order in Free (the nearest courier is already chosen) → "Give to Bekzod": **2 actions per order**, plus one click back to Free, since the table then shows Assigned |
 | From a pin on the map | pin → open the select → pick a courier → Assign: **4** | pin → "Give to …": **2** (3 when choosing someone other than the nearest) |
 | Undoing a wrong click | find the order → open the select → pick the old courier → Move: **4** | Undo in the message: **1** |
 
@@ -170,7 +172,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 | # | Change | Serves | Why, in one line |
 | --- | --- | --- | --- |
 | 1 | Courier cards, nearest chosen, one big button, the others disabled | steps | most orders become one click, and the reason for every refusal is visible before clicking |
-| 2 | Next free order opens by itself | steps | working through the list needs no searching |
+| 2 | After giving an order out, the table shows Assigned with that order open | reading | the dispatcher sees at once where the order went |
 | 3 | Undo | steps | one-click assigning must have a one-click way back |
 | 4 | Map over the order table, Order / Couriers on the right | layout | orders, map and the open order are on screen together |
 | 5 | Adjustable split, Expand table / Show map | layout | the dispatcher decides how much room the map gets |
@@ -185,12 +187,13 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 | 14 | 14px text, darker grey, big order details | reading | less strain over a working day |
 | 15 | One colour per status | reading | red means broken data and nothing else |
 | 16 | Plain message when the courier list cannot load | reading | a problem is said in words instead of an endless "Checking…" |
+| 17 | Change a courier's kinds of work in their card | steps | a pickup-only courier can be given deliveries (and back) in one click, without adding them again |
 
 ### Fewer steps
 
 1. **The courier select became a card per courier, with the nearest one already chosen.** It is the biggest change. Under "Who gets it" every courier has a card. A card for an allowed courier shows the load they would have after the order (parcels and kg) and the km the order adds to their route. The nearest one by the auto-assign rule (least km added) is on top, marked "nearest" and chosen at first. A big button under the cards says what will happen: "Give to Bekzod". For most orders the dispatcher only presses it. Couriers who cannot take the order are disabled: greyed out and not selectable, with the server's reason on the card (for example "Kamola does not work in Bektemir"), so the dispatcher sees why before trying. When nobody can take the order, the button is disabled and says "Nobody can take it". The server still checks every assignment: a request sent by hand for a refused courier gets the same refusal (see the HTTP tests).
    - The cards come from a new endpoint, `GET /api/orders/{id}/candidates`. The server works it out with the same `CanTake` and the same km function as auto-assign. Before, the page repeated the rules in TypeScript (`quickCheck`) to show its hints. That copy is gone, so a hint can no longer disagree with the server. Auto-assign now picks the courier marked "nearest" here, so the two always agree (`domain.Candidates`).
-2. **The next free order opens by itself.** When an order gets its first courier, the next free order that someone can take opens, further down the table the dispatcher is looking at (so a region filter is respected). A checkbox turns this off, for anyone who prefers to work from the map. The choice is remembered in the browser. Moving an order or taking it off does not jump.
+2. **After an order is given out, the table switches to Assigned.** When an order gets its first courier, the table moves from Free to Assigned, with that order still open and highlighted, so the dispatcher sees at once that it went where they meant, and to whom. The region filter and the id search stay as they were. Taking an order off its courier does the opposite: the table switches to Free, with that order open and highlighted there. Moving an order to another courier does not switch the list. An earlier version opened the next free order instead; I dropped it, because jumping away right after giving an order out hid the result of the click.
 3. **Undo.** The message after assign, move or take off has an Undo button for 8 seconds. With one-click assigning, a wrong click is more likely, and undo has to be just as cheap. Undo is an ordinary request, so the server checks it again. If the old courier filled up in the meantime, the message says so.
    - Decision: an order that Undo moves back goes to the **end** of the old courier's route, because the route follows the time of assignment. Keeping the old place would mean a second, hidden rule for route order.
 
@@ -201,8 +204,8 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 6. **The dark header** holds the page name, today's date (Tashkent time), auto-assign and "+ Add courier": everything that is not about one order or one courier. The pin legend moved from the header onto the map's bottom-left corner, next to what it explains. It can be folded away (remembered), and the map moves a picked order out from under it.
 7. **The map reads faster.** Each region has its own soft colour, so neighbouring districts are easy to tell apart. Pins carry an arrow: a square with an up arrow is a pickup (the parcel goes to the hub), a circle with a down arrow is a delivery. Free orders are grey, assigned ones take the courier's colour (the original task asks for that), broken ones are red and dashed. The selected order is larger, with its id above it. The hub is a warehouse badge. A scale bar shows distances.
 8. **The courier panel is one line per courier:** name, kinds, a parcel bar, a weight bar and total km. All six couriers fit on one screen, so "who still has room" can be seen at a glance. Clicking a line slides the full card open (regions, load, stops, km) and draws the route on the map. Inactive couriers go to the bottom. The "shorter order" switch moved into the open card, where it applies.
-9. **The order table opens on Free, oldest first.** Free orders are the work still to do, and oldest first is the order auto-assign uses. The pills show counts (Free (10), Assigned (7), Problems (8), All (25)), and there are an id search and a region filter. The creation time is shown (in Tashkent time). The data has no street addresses, so the table has no address column. Filter, region and search are kept in the address, so a reload or a shared link keeps them, like every other view of the page.
-10. **The map helps choose.** While an order is open, the start pins of the couriers allowed to take it grow and the other couriers fade. When an order is picked in the table, the map flies to it and rings pulse around its pin for a few seconds (in its courier's colour, teal while free), the same way a courier's start point does, so the eye finds it at once. When an order opens another way (the next order after giving one out) and its pin is off screen or under the legend, the map pans to it (the zoom stays).
+9. **The order table opens on Free, oldest first.** Free orders are the work still to do, and oldest first is the order auto-assign uses. The pills show counts (Free (10), Assigned (7), Problems (8), All (25)), and there are an id search and a region filter. The creation time is shown (in Tashkent time). The data has no street addresses, so the table has no address column. Filter, region and search are kept in the address, so a reload or a shared link keeps them, like every other view of the page. When the table scrolls, the selected row slides to the middle of the visible rows (below the sticky header), so it is never half hidden at an edge; only the table moves, never the page.
+10. **The map helps choose.** While an order is open, the start pins of the couriers allowed to take it grow and the other couriers fade. When an order is picked in the table, the map flies to it and rings pulse around its pin for a few seconds (in its courier's colour, teal while free), the same way a courier's start point does, so the eye finds it at once. When an order opens another way (a link, or after giving it out) and its pin is off screen or under the legend, the map pans to it (the zoom stays).
 11. **The data refreshes by itself** every 15 seconds and when the tab gets focus. Before, the page only reloaded after the dispatcher's own changes, so changes by a second dispatcher stayed invisible.
 12. **Phone layout.** A dispatcher works at a desk, but may need to check something away from it, and the old page broke on a phone (header in three rows, table cut off, courier names over the bars). Below 1000 px the blocks stack (map, table, order panel), the page scrolls as a whole and the map has a fixed height. Below 640 px the header has two rows, the table drops the Type, Created and arrow columns (the icon shows the type), the filter pills scroll sideways, the courier rows drop the weight bar, and picking an order scrolls to the order panel. Checked at 360 and 320 px: nothing is wider than the screen.
 13. **The region bar has a Done button and a ×.** Done stops editing; before, the only way out was to choose "— choose a courier —" in the select. The × folds the whole bar into a small "Regions" button so it does not cover the map (remembered). It asks first if region changes are unsaved, and the bar opens again by itself right after a courier is added, when their regions are to be chosen.
@@ -212,6 +215,8 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 14. **Text is 14px instead of the browser's 16px mixed with 13px**, and grey text is darker (slate-600 instead of slate-500). The order title, the order's kind, parcel and weight, and the courier names on the cards are large. Numbers use tabular figures, so km and kg line up in columns. The side panel and the table scroll without drawing scroll bars.
 15. **One colour per status, everywhere:** red only for broken data, amber for "no courier fits" and "outside regions" (before, "no courier fits" was red like broken data), the courier's colour for assigned orders, grey for free. Teal is used only for actions and for what is chosen.
 16. **A plain message when the courier list cannot be loaded.** If the candidates request fails (for example a server started before this change, which answers "No such API endpoint"), the order panel says so with the server's words and a "Try again" link, instead of showing "Checking couriers…" forever.
+
+17. **A courier's kinds of work can be changed in their card.** In the Couriers tab, the open card shows "Works on: [Pickups] [Deliveries]". A click adds or takes away that kind and saves at once, so a pickup-only courier can be given deliveries without being added again. The last kind left cannot be taken away (its button is disabled). The server refuses to take a kind away while the courier still holds orders of that kind and names them ("Dilnoza still has 1 delivery: o02. Take it off or move it first"); the message appears under the buttons. New endpoint `PUT /api/couriers/{id}/kinds`, with tests in the domain, the use case and over HTTP.
 
 ### What I did not change, and why
 
@@ -240,6 +245,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 - [seed/seed_test.go](backend/internal/seed/seed_test.go): every broken seed order is found with its reason.
 - [repository/memory/memory_test.go](backend/internal/repository/memory/memory_test.go): stored data cannot be changed from outside; ids and sequence numbers.
 - [transport/httpapi/api_test.go](backend/internal/transport/httpapi/api_test.go): requests sent by hand over HTTP, including bad JSON, wrong types, unknown fields and unknown ids, with status codes and messages; the courier list for an order.
+- [domain/kinds_change_test.go](backend/internal/domain/kinds_change_test.go): changing a courier's kinds: known kinds only, at least one, adding always allowed, taking away refused while orders of that kind are held (also in the use case test on the seed data and over HTTP).
 - [config/config_test.go](backend/internal/config/config_test.go): reading `.env`, and flags winning over it.
 
 ## Architecture

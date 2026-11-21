@@ -46,6 +46,23 @@ func (h *handlers) setRegions(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toCourierResponse(c))
 }
 
+func (h *handlers) setKinds(w http.ResponseWriter, r *http.Request) {
+	var req setKindsRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if req.Kinds == nil {
+		writeError(w, domain.FieldError("kinds", "kinds is required: pickup, delivery or both"))
+		return
+	}
+	c, err := h.dispatcher.SetCourierKinds(r.PathValue("id"), *req.Kinds)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toCourierResponse(c))
+}
+
 func (h *handlers) assignOrder(w http.ResponseWriter, r *http.Request) {
 	var req assignRequest
 	if !decodeJSON(w, r, &req) {

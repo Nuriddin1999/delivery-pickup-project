@@ -1,6 +1,5 @@
 import type { DispatchState } from "@/api/types";
 import { Button } from "@/shared/ui/Button";
-import { Checkbox } from "@/shared/ui/Checkbox";
 import { cn, hintText } from "@/shared/ui/styles";
 import { OrderFilters } from "./OrderFilters";
 import { OrderRow } from "./OrderRow";
@@ -29,10 +28,7 @@ export function OrdersTable({ state, colors, list, selectedId, onSelect, expande
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-col gap-2 border-b border-slate-100 px-3 pt-3 pb-2 max-sm:px-2">
         <OrderFilters query={list.query} counts={list.counts} regions={state.regions} onChange={list.setQuery} />
-        <div className="flex items-center justify-between gap-2">
-          <Checkbox checked={list.queue} onChange={list.setQueue}>
-            <span className="text-[13px] text-slate-600">Open the next free order after giving one out</span>
-          </Checkbox>
+        <div className="flex items-center justify-end gap-2">
           <Button
             className="flex items-center gap-1.5 py-1 text-[13px]"
             onClick={expanded ? onShowMap : onExpand}
@@ -46,7 +42,7 @@ export function OrdersTable({ state, colors, list, selectedId, onSelect, expande
         </div>
       </div>
 
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto max-[1000px]:overflow-x-auto max-[1000px]:overflow-y-visible">
+      <div data-order-scroll className="no-scrollbar min-h-0 flex-1 overflow-y-auto max-[1000px]:overflow-x-auto max-[1000px]:overflow-y-visible">
         {list.visible.length === 0 ? (
           <p className={`${hintText} p-4`}>No orders match. {list.query.show === "free" && "Every order a courier can take has one."}</p>
         ) : (

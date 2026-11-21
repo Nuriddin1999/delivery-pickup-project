@@ -15,6 +15,7 @@ type Dispatcher interface {
 	Overview() usecase.Overview
 	AddCourier(draft domain.CourierDraft) (domain.Courier, error)
 	SetCourierRegions(courierID string, regions []string) (domain.Courier, error)
+	SetCourierKinds(courierID string, kinds []string) (domain.Courier, error)
 	AssignOrder(orderID, courierID string) (domain.Order, error)
 	UnassignOrder(orderID string) (domain.Order, error)
 	AutoAssign() usecase.AutoAssignResult
@@ -36,6 +37,7 @@ func NewRouter(d Dispatcher, shapes []byte, staticDir string) http.Handler {
 	mux.HandleFunc("GET /api/regions.geojson", h.getShapes)
 	mux.HandleFunc("POST /api/couriers", h.addCourier)
 	mux.HandleFunc("PUT /api/couriers/{id}/regions", h.setRegions)
+	mux.HandleFunc("PUT /api/couriers/{id}/kinds", h.setKinds)
 	mux.HandleFunc("GET /api/orders/{id}/candidates", h.getCandidates)
 	mux.HandleFunc("PUT /api/orders/{id}/courier", h.assignOrder)
 	mux.HandleFunc("DELETE /api/orders/{id}/courier", h.unassignOrder)

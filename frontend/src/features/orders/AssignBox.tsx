@@ -12,12 +12,15 @@ import { OrderDetails } from "./OrderDetails";
 import { useCandidates } from "./useCandidates";
 import { useOrderActions } from "./useOrderActions";
 
-/** What happened to the order, for the toast and the queue. */
+/** What happened to the order, for the toast and the order list. */
 export interface OrderChange {
   message: string;
   undo: Undo;
-  /** a free order got its first courier (the queue then moves on) */
-  newlyAssigned: boolean;
+  /**
+   * given: a free order got its first courier (the table then shows Assigned);
+   * takenOff: it lost its courier (the table then shows Free); moved: another courier.
+   */
+  kind: "given" | "moved" | "takenOff";
 }
 
 interface Props {
@@ -43,24 +46,28 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
   const [picked, setPicked] = useState<string | null>(null);
 
   const nearestId = candidates?.find((c) => c.nearest)?.courier_id ?? null;
-  const chosenId = picked ?? nearestId;
+  // A pick only counts while that courier is still allowed. After the order went to them they
+  // hold it and are no longer a candidate, so "Move to <the holder>" must never be offered.
+  const pickedStillAllowed = !!picked && !!candidates?.some((c) => c.courier_id === picked && c.allowed);
+  const chosenId = pickedStillAllowed ? picked : nearestId;
   const chosen = chosenId ? couriersById[chosenId] : undefined;
 
   const giveTo = (courierId: string) => {
     const target = couriersById[courierId];
     if (!target || actions.busy) return;
-    actions.assign(courierId, () =>
+    actions.assign(courierId, () => {
+      setPicked(null);
       onChanged(
         current
-          ? { message: `${order.id} moved from ${current.name} to ${target.name}`, undo: () => dispatchApi.assign(order.id, current.id), newlyAssigned: false }
-          : { message: `${order.id} given to ${target.name}`, undo: () => dispatchApi.unassign(order.id), newlyAssigned: true },
-      ),
-    );
+          ? { message: `${order.id} moved from ${current.name} to ${target.name}`, undo: () => dispatchApi.assign(order.id, current.id), kind: "moved" }
+          : { message: `${order.id} given to ${target.name}`, undo: () => dispatchApi.unassign(order.id), kind: "given" },
+      );
+    });
   };
 
   const takeOff = () => {
     if (!current || actions.busy) return;
-    actions.unassign(() => onChanged({ message: `${order.id} taken off ${current.name}`, undo: () => dispatchApi.assign(order.id, current.id), newlyAssigned: false }));
+    actions.unassign(() => onChanged({ message: `${order.id} taken off ${current.name}`, undo: () => dispatchApi.assign(order.id, current.id), kind: "takenOff" }));
   };
 
   const verb = current ? "Move" : "Give";

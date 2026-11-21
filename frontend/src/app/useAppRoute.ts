@@ -21,6 +21,8 @@ export function useAppRoute() {
     // The order list is always on screen; its filter lives in the query string, so every move keeps it.
     selectOrder: (id: string | null) => navigate((id ? paths.order(id) : paths.orders) + search),
     focusCourier: (id: string | null) => navigate((id ? paths.courier(id) : paths.couriers) + search),
+    /** opens an order with another list filter, e.g. Assigned right after it was given out */
+    openOrderWith: (id: string, nextSearch: string) => navigate(paths.order(id) + nextSearch),
     /** keeps the order list's filter on links */
     search,
   };

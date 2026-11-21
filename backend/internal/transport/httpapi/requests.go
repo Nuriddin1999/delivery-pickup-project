@@ -33,6 +33,11 @@ type setRegionsRequest struct {
 	Regions *[]string `json:"regions"`
 }
 
+// setKindsRequest is the body of PUT /api/couriers/{id}/kinds.
+type setKindsRequest struct {
+	Kinds *[]string `json:"kinds"`
+}
+
 // assignRequest is the body of PUT /api/orders/{id}/courier.
 type assignRequest struct {
 	CourierID string `json:"courier_id"`

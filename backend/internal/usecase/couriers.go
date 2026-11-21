@@ -35,3 +35,27 @@ func (d *Dispatcher) SetCourierRegions(courierID string, regions []string) (doma
 	d.repo.SaveCourier(c)
 	return c, nil
 }
+
+// SetCourierKinds replaces the kinds of work a courier does. Adding a kind is
+// always allowed; taking one away is refused while the courier still holds
+// orders of that kind (domain.CheckKindsChange).
+func (d *Dispatcher) SetCourierKinds(courierID string, raw []string) (domain.Courier, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	c, ok := d.repo.Courier(courierID)
+	if !ok {
+		return domain.Courier{}, domain.NotFound("courier", courierID)
+	}
+	kinds, err := domain.ParseKinds(raw)
+	if err != nil {
+		return domain.Courier{}, err
+	}
+	if r := domain.CheckKindsChange(c, kinds, d.repo.Orders()); r != nil {
+		return domain.Courier{}, r
+	}
+
+	c.Kinds = kinds
+	d.repo.SaveCourier(c)
+	return c, nil
+}

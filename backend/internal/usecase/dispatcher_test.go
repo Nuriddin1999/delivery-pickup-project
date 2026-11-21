@@ -3,6 +3,7 @@ package usecase_test
 import (
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"delivery/internal/domain"
@@ -267,4 +268,59 @@ func findCourier(ov usecase.Overview, id string) usecase.CourierOverview {
 		}
 	}
 	return usecase.CourierOverview{}
+}
+
+// kindsOf finds a courier's kinds in the overview.
+func kindsOf(d *usecase.Dispatcher, courierID string) []domain.Kind {
+	for _, c := range d.Overview().Couriers {
+		if c.Courier.ID == courierID {
+			return c.Courier.Kinds
+		}
+	}
+	return nil
+}
+
+func TestKindsChange(t *testing.T) {
+	d := newDispatcher(t)
+
+	// Dilnoza (c2) does pickups only, so a delivery in her region is refused.
+	if _, err := d.AssignOrder("o02", "c2"); refusalCode(err) != domain.CodeWrongKind {
+		t.Fatalf("before: want wrong_kind, got %v", err)
+	}
+
+	// Adding deliveries is allowed, and then she can take one.
+	if c, err := d.SetCourierKinds("c2", []string{"pickup", "delivery"}); err != nil || len(c.Kinds) != 2 {
+		t.Fatalf("add delivery: %v %v", c.Kinds, err)
+	}
+	if _, err := d.AssignOrder("o02", "c2"); err != nil {
+		t.Fatalf("assign after adding delivery: %v", err)
+	}
+
+	// Taking deliveries away while she holds o02 is refused and changes nothing.
+	_, err := d.SetCourierKinds("c2", []string{"pickup"})
+	if refusalCode(err) != domain.CodeKindInUse || !strings.Contains(err.Error(), "o02") {
+		t.Fatalf("remove while held: want kind_in_use naming o02, got %v", err)
+	}
+	if got := kindsOf(d, "c2"); len(got) != 2 {
+		t.Errorf("a refused change must not be stored, kinds = %v", got)
+	}
+
+	// Once o02 is taken off, deliveries can go.
+	if _, err := d.UnassignOrder("o02"); err != nil {
+		t.Fatal(err)
+	}
+	if c, err := d.SetCourierKinds("c2", []string{"pickup"}); err != nil || len(c.Kinds) != 1 || c.Kinds[0] != domain.Pickup {
+		t.Fatalf("remove after taking off: %v %v", c.Kinds, err)
+	}
+
+	// A courier needs at least one kind, known kinds only, and must exist.
+	var invalid *domain.ValidationError
+	for _, raw := range [][]string{{}, {"fly"}} {
+		if _, err := d.SetCourierKinds("c2", raw); !errors.As(err, &invalid) {
+			t.Errorf("%v: want a validation error, got %v", raw, err)
+		}
+	}
+	if _, err := d.SetCourierKinds("c99", []string{"pickup"}); refusalCode(err) != domain.CodeNotFound {
+		t.Errorf("unknown courier: got %v", err)
+	}
 }
