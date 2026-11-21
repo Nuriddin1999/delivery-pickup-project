@@ -58,17 +58,3 @@ export function countByFilter(state: DispatchState, query: OrderQuery): Record<O
   const count = (f: OrderFilter) => found.filter((o) => matchesFilter(o, f, unassignable)).length;
   return { free: count("free"), taken: count("taken"), problem: count("problem"), all: found.length };
 }
-
-/**
- * The order to open after currentId was given out: the next free order a
- * courier can take, further down the list (wrapping to the top), or null.
- */
-export function nextInQueue(list: Order[], currentId: string, state: DispatchState): string | null {
-  const unassignable = new Set(state.unassignable.map((u) => u.order_id));
-  const start = list.findIndex((o) => o.id === currentId);
-  for (let step = 1; step < list.length; step++) {
-    const o = list[(start + step + list.length) % list.length];
-    if (o.id !== currentId && !o.courier_id && !unassignable.has(o.id)) return o.id;
-  }
-  return null;
-}

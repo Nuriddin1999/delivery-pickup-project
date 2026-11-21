@@ -1,34 +1,28 @@
 import type { DispatchState } from "@/api/types";
 import type { Undo } from "@/hooks/useToast";
 import { AssignBox, type OrderChange } from "./AssignBox";
-import type { OrderList } from "./useOrderList";
 
 interface Props {
   state: DispatchState;
   colors: Record<string, string>;
-  list: OrderList;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  /** opens the order in the Assigned list, after it got its first courier */
+  onAssigned: (id: string) => void;
   onChanged: (message: string, undo?: Undo) => void;
 }
 
 /**
- * The "Order" tab: the open order with its couriers. With "open the next
- * order" on, giving out an order opens the next free one in the list, so
- * working through the list is one click per order.
+ * The "Order" tab: the open order with its couriers. When an order gets its
+ * first courier, the table switches to Assigned with that order still open,
+ * so the dispatcher sees where it went.
  */
-export function OrderPanel({ state, colors, list, selectedId, onSelect, onChanged }: Props) {
+export function OrderPanel({ state, colors, selectedId, onSelect, onAssigned, onChanged }: Props) {
   const couriersById = Object.fromEntries(state.couriers.map((c) => [c.id, c]));
   const selected = state.orders.find((o) => o.id === selectedId);
 
   const changed = (orderId: string, change: OrderChange) => {
-    if (list.queue && change.newlyAssigned) {
-      // `list` is the list as it was when the courier was picked, so the order is still in it.
-      const next = list.nextAfter(orderId);
-      onSelect(next);
-      onChanged(next ? change.message : `${change.message}. No more free orders in this list.`, change.undo);
-      return;
-    }
+    if (change.newlyAssigned) onAssigned(orderId);
     onChanged(change.message, change.undo);
   };
 

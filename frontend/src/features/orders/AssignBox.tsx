@@ -12,11 +12,11 @@ import { OrderDetails } from "./OrderDetails";
 import { useCandidates } from "./useCandidates";
 import { useOrderActions } from "./useOrderActions";
 
-/** What happened to the order, for the toast and the queue. */
+/** What happened to the order, for the toast and the order list. */
 export interface OrderChange {
   message: string;
   undo: Undo;
-  /** a free order got its first courier (the queue then moves on) */
+  /** a free order got its first courier (the table then switches to Assigned) */
   newlyAssigned: boolean;
 }
 

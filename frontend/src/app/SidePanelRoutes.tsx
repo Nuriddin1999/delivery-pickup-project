@@ -38,7 +38,16 @@ export function SidePanelRoutes(p: Props) {
       onShowPoint={p.onShowPoint}
     />
   );
-  const order = <OrderPanel state={p.state} colors={p.colors} list={p.orderList} selectedId={p.route.selectedOrderId} onSelect={p.route.selectOrder} onChanged={p.onOrderChanged} />;
+  const order = (
+    <OrderPanel
+      state={p.state}
+      colors={p.colors}
+      selectedId={p.route.selectedOrderId}
+      onSelect={p.route.selectOrder}
+      onAssigned={(id) => p.route.openOrderWith(id, p.orderList.searchWith({ show: "taken" }))}
+      onChanged={p.onOrderChanged}
+    />
+  );
   const addCourier = (
     <AddCourierForm
       takenNames={p.state.couriers.map((c) => c.name)}
