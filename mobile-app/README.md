@@ -47,6 +47,7 @@ npx expo-doctor    # dependency and config checks
 ## Files
 
 - `App.tsx`: the screen (loading, error with "Try again", courier list)
+- `src/Select.tsx`: the select: field, list of the same width under it, check next to the chosen one
 - `src/api.ts`: the server address and the request for couriers
 - `index.ts`: registers the app
 - `app.json`: app name, icons, orientation
