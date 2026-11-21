@@ -130,7 +130,7 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
 
           {current && (
             <Button disabled={actions.busy} onClick={takeOff}>
-              Take off {current.name}
+              Take off from {current.name}
             </Button>
           )}
         </>

@@ -200,7 +200,7 @@ The data is the same in both: seven orders given out by hand ([how the screensho
 
 12. **Text is 14px instead of the browser's 16px mixed with 13px**, and grey text is darker (slate-600 instead of slate-500). The order title, the order's kind, parcel and weight, and the courier names on the cards are large. Numbers use tabular figures, so km and kg line up in columns. The side panel and the table scroll without drawing scroll bars.
 13. **One colour per status, everywhere:** red only for broken data, amber for "no courier fits" and "outside regions" (before, "no courier fits" was red like broken data), the courier's colour for assigned orders, grey for free. Teal is used only for actions and for what is chosen.
-14. The region bar has a **Done** button to stop editing. Before, the only way out was to choose "— choose a courier —" in the select.
+14. The region bar has a **Done** button to stop editing. Before, the only way out was to choose "— choose a courier —" in the select. Its × folds the whole bar into a small "Regions" button so it does not cover the map (remembered; it asks first if region changes are unsaved, and opens again by itself right after a courier is added).
 
 ### What I did not change, and why
 

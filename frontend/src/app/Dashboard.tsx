@@ -67,9 +67,11 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
   const candidates = useCandidates(route.selectedOrderId).data;
   const allowedCourierIds = route.selectedOrderId && candidates?.order_id === route.selectedOrderId ? new Set(candidates.candidates.filter((c) => c.allowed).map((c) => c.courier_id)) : null;
 
-  const pickRegionCourier = (id: string) => {
+  const pickRegionCourier = (id: string): boolean => {
+    if (!regions.pick(id)) return false;
     // On the couriers tab, also show that courier's route.
-    if (regions.pick(id) && id && route.tab === "couriers") route.focusCourier(id);
+    if (id && route.tab === "couriers") route.focusCourier(id);
+    return true;
   };
 
   return (

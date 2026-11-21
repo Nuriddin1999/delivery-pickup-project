@@ -1,4 +1,5 @@
 import type { CourierView } from "@/api/types";
+import { useStoredFlag } from "@/hooks/useStoredFlag";
 import type { RegionEditor as Editor } from "./useRegionEditor";
 import { Button } from "@/shared/ui/Button";
 import { Swatch } from "@/shared/ui/Swatch";
@@ -12,16 +13,51 @@ interface Props {
   colors: Record<string, string>;
   /** the map is busy with something else (the add-courier form) */
   disabled: boolean;
-  onPick: (courierId: string) => void;
+  /** returns false when the dispatcher chose to keep unsaved changes */
+  onPick: (courierId: string) => boolean;
 }
 
-/** Floating bar on the map: pick a courier, click regions, save. */
+/**
+ * Floating bar on the map: pick a courier, click regions, save. The × folds
+ * it into a small "Regions" button (remembered) so it does not cover the
+ * map; it opens again by itself when a courier's regions are being edited,
+ * e.g. right after adding a courier.
+ */
 export function RegionEditor({ editor, couriers, allRegions, colors, disabled, onPick }: Props) {
   const { courier, draft, dirty, saving, message } = editor;
   const color = courier ? colors[courier.id] : "";
+  const [open, setOpen] = useStoredFlag("dispatch.regionBarOpen", true);
+
+  // Closing also stops editing; with unsaved changes the dispatcher is asked first.
+  const close = () => {
+    if (editor.courierId && !onPick("")) return;
+    setOpen(false);
+  };
+
+  if (!open && !editor.courierId)
+    return (
+      <button
+        type="button"
+        className="pointer-events-auto cursor-pointer rounded-xl border border-slate-200 bg-white/95 px-3 py-1.5 text-[13px] font-medium text-slate-700 shadow-md hover:bg-white"
+        onClick={() => setOpen(true)}
+        title="Choose a courier's regions on the map"
+      >
+        Regions
+      </button>
+    );
 
   return (
-    <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-md">
+    <div className="pointer-events-auto relative flex max-w-full flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/95 py-2 pr-9 pl-3 shadow-md">
+      <button
+        type="button"
+        className="absolute top-1.5 right-1.5 cursor-pointer rounded-md px-1.5 text-lg leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-default disabled:opacity-40"
+        onClick={close}
+        disabled={saving}
+        title="Hide the regions bar"
+        aria-label="Hide the regions bar"
+      >
+        ×
+      </button>
       <label>
         Regions of{" "}
         <select className={inputClass} value={editor.courierId} disabled={disabled} onChange={(e) => onPick(e.target.value)}>
