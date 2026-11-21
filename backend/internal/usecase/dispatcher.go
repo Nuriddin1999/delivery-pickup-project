@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"sync"
+	"time"
 
 	"delivery/internal/domain"
 )
@@ -13,9 +14,10 @@ type Dispatcher struct {
 	mu   sync.RWMutex
 	city domain.City
 	repo Repository
+	now  func() time.Time
 }
 
 // NewDispatcher works on the given city and storage.
 func NewDispatcher(city domain.City, repo Repository) *Dispatcher {
-	return &Dispatcher{city: city, repo: repo}
+	return &Dispatcher{city: city, repo: repo, now: time.Now}
 }

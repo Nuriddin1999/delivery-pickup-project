@@ -22,10 +22,16 @@ type Order struct {
 	// AssignSeq records when the order was given to its courier; the route
 	// visits stops in this order.
 	AssignSeq int
+
+	// DoneAt is when the courier marked the stop done; zero while it is not.
+	DoneAt time.Time
 }
 
 // Broken reports whether the order has bad data.
 func (o Order) Broken() bool { return len(o.Problems) > 0 }
+
+// Done reports whether the courier has marked the order's stop done.
+func (o Order) Done() bool { return !o.DoneAt.IsZero() }
 
 // Assigned reports whether the order has a courier.
 func (o Order) Assigned() bool { return o.CourierID != "" }

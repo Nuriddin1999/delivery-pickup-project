@@ -27,7 +27,7 @@ cd backend && go run ./cmd/server       # API on SERVER_ADDR (:8080), loads DATA
 cd frontend && npm install && npm run dev # page on http://localhost:5173, /api goes to API_PROXY_TARGET
 ```
 
-Mobile app (React Native with Expo, for now it shows "Hello world"): see [mobile-app/README.md](mobile-app/README.md).
+Courier app (React Native with Expo; the courier picks their name, sees today's stops in route order and marks them done): see [mobile-app/README.md](mobile-app/README.md) and [Courier phone app](#courier-phone-app) below.
 
 ```sh
 cd mobile-app && npm install && npx expo start   # scan the QR code with Expo Go
@@ -81,8 +81,9 @@ Every error response is JSON: `{"code": "...", "error": "plain sentence"}`. A fo
 | PUT | `/api/couriers/{id}/regions` | `{regions: [...]}` | replaces the courier's regions |
 | PUT | `/api/couriers/{id}/kinds` | `{kinds: ["pickup", "delivery"]}` | replaces the courier's kinds of work: at least one; 409 `kind_in_use` when a kind is taken away while the courier holds orders of it |
 | GET | `/api/orders/{id}/candidates` | | every courier except the holder: `{courier_id, allowed, code?, reason?, added_km, nearest, load}`, allowed first, nearest on top |
-| PUT | `/api/orders/{id}/courier` | `{courier_id}` | assigns the order, or moves it if another courier holds it |
-| DELETE | `/api/orders/{id}/courier` | | takes the order off its courier |
+| PUT | `/api/orders/{id}/courier` | `{courier_id}` | assigns the order, or moves it if another courier holds it; 409 `order_done` when its stop is done |
+| DELETE | `/api/orders/{id}/courier` | | takes the order off its courier; 409 `order_done` when its stop is done |
+| POST | `/api/couriers/{id}/stops/{orderId}/done` | | the courier marks the stop of their order done; the order comes back with `done_at`. 409 `not_your_order`, `already_done` or `out_of_order` (see [stop rules](#stop-rules)) |
 | POST | `/api/auto-assign` | | `{assigned: [...], unplaced: [{order_id, reason}]}` |
 
 Status codes: 400 for an unusable request (bad JSON, wrong types, unknown fields, failed checks), 404 for an unknown order or courier, 409 for a rule refusal.
@@ -104,6 +105,18 @@ All rules live in [backend/internal/domain/rules.go](backend/internal/domain/rul
 4. The courier works in the order's region: `Kamola does not work in Bektemir`
 5. Parcel room is left, with pickups and deliveries counted together: `Kamola has no room: already 3 of 3 parcels today`
 6. Weight room is left: `Kamola cannot carry 6 kg more: already 12 of 15 kg today`
+
+One more rule came with the courier app: **no new pickup for a courier who has already delivered something** (`past_hub`): `Kamola has already left the hub with deliveries, so a new pickup does not fit today's route`. It is checked after the region and before the limits, so auto-assign and the courier cards follow it too.
+
+### Stop rules
+
+[domain/stops.go](backend/internal/domain/stops.go) (`CanMarkDone`, `CanRelease`). When a courier marks a stop done, the server checks, in this order:
+
+1. The order is on this courier's route: `Order o23 is not on Dilnoza's route` (`not_your_order`)
+2. It is not done already: `Order o23 is already done` (`already_done`)
+3. Every stop before it on the route is done: `Do stop 1 (order o23) first: stops go in route order` (`out_of_order`). The route is start, pickups, hub, deliveries, so this also means no delivery before every pickup.
+
+A done order cannot be taken off or moved any more: `Order o23 is already done, so it stays with its courier` (`order_done`). The parcel has already been picked up or handed over.
 
 The use case layer ([usecase/dispatcher.go](backend/internal/usecase/dispatcher.go)) holds one lock around each change, so a check and the change it allows happen as one step.
 
@@ -187,7 +200,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 | 8 | One line per courier | layout | the whole team's load fits on one screen |
 | 9 | Order table: Free, oldest first, counts, search, region | steps, reading | the work still to do comes first, in the order it should be done |
 | 10 | Map highlights who can take the order | steps | "who is closest" is visible at a glance |
-| 11 | Data refreshes every 15 s | reading | changes by others show up without a reload |
+| 11 | Data refreshes every 5 s | reading | changes by others show up without a reload |
 | 12 | Phone layout | layout | the page stays usable on a small screen |
 | 13 | Region bar: Done and × | layout | the bar does not cover the map when it is not needed |
 | 14 | 14px text, darker grey, big order details | reading | less strain over a working day |
@@ -212,7 +225,7 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 8. **The courier panel is one line per courier:** name, kinds, a parcel bar, a weight bar and total km. All six couriers fit on one screen, so "who still has room" can be seen at a glance. Clicking a line slides the full card open (regions, load, stops, km) and draws the route on the map. Inactive couriers go to the bottom. The "shorter order" switch moved into the open card, where it applies.
 9. **The order table opens on Free, oldest first.** Free orders are the work still to do, and oldest first is the order auto-assign uses. The pills show counts (Free (10), Assigned (7), Problems (8), All (25)), and there are an id search and a region filter. The creation time is shown (in Tashkent time). The data has no street addresses, so the table has no address column. Filter, region and search are kept in the address, so a reload or a shared link keeps them, like every other view of the page. When the table scrolls, the selected row slides to the middle of the visible rows (below the sticky header), so it is never half hidden at an edge; only the table moves, never the page.
 10. **The map helps choose.** While an order is open, the start pins of the couriers allowed to take it grow and the other couriers fade. When an order is picked in the table, the map flies to it and rings pulse around its pin for a few seconds (in its courier's colour, teal while free), the same way a courier's start point does, so the eye finds it at once. When an order opens another way (a link, or after giving it out) and its pin is off screen or under the legend, the map pans to it (the zoom stays).
-11. **The data refreshes by itself** every 15 seconds and when the tab gets focus. Before, the page only reloaded after the dispatcher's own changes, so changes by a second dispatcher stayed invisible.
+11. **The data refreshes by itself** every 5 seconds and when the tab gets focus. Before, the page only reloaded after the dispatcher's own changes, so changes by a second dispatcher, or stops a courier marks done in the app, stayed invisible.
 12. **Phone layout.** A dispatcher works at a desk, but may need to check something away from it, and the old page broke on a phone (header in three rows, table cut off, courier names over the bars). Below 1000 px the blocks stack (map, table, order panel), the page scrolls as a whole and the map has a fixed height. Below 640 px the header has two rows, the table drops the Type, Created and arrow columns (the icon shows the type), the filter pills scroll sideways, the courier rows drop the weight bar, and picking an order scrolls to the order panel. Checked at 360 and 320 px: nothing is wider than the screen.
 13. **The region bar has a Done button and a ×.** Done stops editing; before, the only way out was to choose "— choose a courier —" in the select. The × folds the whole bar into a small "Regions" button so it does not cover the map (remembered). It asks first if region changes are unsaved, and the bar opens again by itself right after a courier is added, when their regions are to be chosen.
 
@@ -231,6 +244,36 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 - **Russian texts from the mockups:** the project, its server messages and its tests are in English, and mixing languages would be worse than either.
 - **A dark theme:** it does not help any of the three goals.
 - **Frontend tests**, for the same reason as before: the rules live on the server. The new endpoint has Go tests. I drove the new flow in a headless browser: opening o23 (the oldest) shows Aziz chosen, "Give to Aziz" gives it to him and opens o01, Undo takes it back, and on o12 every courier is disabled with their reason, Kamola's being "Kamola does not work in Bektemir". I also measured the split (the table expands and the map comes back in 0.3 s; while dragging the bar is 0 px from the pointer) and the phone layout at 360 and 320 px.
+
+## Courier phone app
+
+The second part of the follow-up task: a page for couriers that works on a phone. On request it is a phone app in [mobile-app/](mobile-app/) (React Native with Expo, TypeScript), not a page of the web app. It talks to the same server, and every rule is checked there, so it does not matter which client sends the request.
+
+**What the courier does**
+
+1. **Selects their name** in "Please select yourself:". While the list loads the screen says "Loading...".
+2. **Sees today's stops in route order:** the pickups, then a "Hub: drop off pickups, load deliveries" line, then the deliveries, numbered 1, 2, 3 as on the dispatcher's map. The header counts them: "Today's stops: 1 of 5 done".
+3. **Marks each stop done:** only the next stop is highlighted and has a "Done" button. A tap asks "Stop 2 done?" first, so a slip of the thumb does not count. A done stop gets a green check and the time. When the server refuses, its sentence is shown as it is ("Not saved: Do stop 1 (order o23) first...") and the list reloads.
+
+The list refreshes on its own every 5 seconds while the app is open (and at once when it is opened again), so an order the dispatcher gives out or takes off shows up within seconds. With nobody chosen, the app lists all orders with who holds them.
+
+**On the dispatcher page** the order table has a **Done** pill: the stops couriers have marked done move there from Assigned, so Assigned is the work still to do. A done order also shows a green "done" tag next to the courier, and the order panel says "Aziz marked this stop done at 10:42. A done order stays with its courier." instead of offering Move to / Take off.
+
+**Decisions**
+
+- **Done is a time on the order** (`done_at`), not a separate list of stops. A stop is always one order (the hub is not a stop with an order), so this is the smallest thing that works, and the dispatcher page sees it in the state it already loads.
+- **Strict route order.** The task says the courier sees the stops in route order; the server makes that the rule, so a request sent by hand cannot skip a stop or deliver before the pickups are done. The app shows the button only on the next stop, but the server does not rely on that.
+- **The hub is shown but not marked.** It has no order, and "every earlier stop is done" already means every pickup is done before the first delivery.
+- **Done orders stay where they are,** and a courier who has delivered something gets no new pickups: a new pickup would land before the hub on a route the courier has already passed.
+- **Done stops still count toward the day's limits:** the limits are per day, and the parcel was carried.
+- **"Today" is every order the courier holds:** the data is one day and has no dates to filter by.
+
+**Skipped**
+
+- **Undoing a done stop** from the app. A wrong tap is guarded by the confirm question; an undo would need its own rules (only the last stop, only by the same courier) and an endpoint.
+- **Logins:** the courier picks their name, as the task says. Nothing stops someone from picking another name, as on the dispatcher page.
+- **A map in the app:** the list in route order is what the task asks for.
+- **App tests:** the rules are on the server and tested there. The app was checked for types and an Android bundle; the requests it sends were also sent by hand to a running server.
 
 ## What I skipped and why
 
@@ -252,6 +295,8 @@ The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page
 - [repository/memory/memory_test.go](backend/internal/repository/memory/memory_test.go): stored data cannot be changed from outside; ids and sequence numbers.
 - [transport/httpapi/api_test.go](backend/internal/transport/httpapi/api_test.go): requests sent by hand over HTTP, including bad JSON, wrong types, unknown fields and unknown ids, with status codes and messages; the courier list for an order.
 - [domain/kinds_change_test.go](backend/internal/domain/kinds_change_test.go): changing a courier's kinds: known kinds only, at least one, adding always allowed, taking away refused while orders of that kind are held (also in the use case test on the seed data and over HTTP).
+- [domain/stops_test.go](backend/internal/domain/stops_test.go): marking stops done: next stop allowed, skipping a stop or delivering before the pickups refused, twice refused, another courier's order refused; a done order cannot leave its courier; a done delivery means the courier has left the hub (and `rules_test.go` refuses a new pickup then).
+- `TestMarkStopDoneOverHTTP` in [transport/httpapi/api_test.go](backend/internal/transport/httpapi/api_test.go): after auto-assign, stop requests sent by hand: out of order, another courier, unknown courier or order, twice, and taking off or moving a done order are all refused with their codes; in order they pass.
 - [config/config_test.go](backend/internal/config/config_test.go): reading `.env`, and flags winning over it.
 
 ## Architecture
@@ -297,7 +342,7 @@ frontend/src/
   api/                      client.ts (fetch + ApiError), dispatchApi.ts (endpoints), types.ts (JSON shapes)
   config/env.ts             VITE_* settings from .env
   domain/                   pure logic, no React: formatting, form checks, colours
-  hooks/                    shared: useDispatchState (TanStack Query, reloads every 15 s), useStateMutation (change + reload),
+  hooks/                    shared: useDispatchState (TanStack Query, reloads every 5 s), useStateMutation (change + reload),
                             useToast (with Undo), useStoredFlag
   features/                 one folder per part of the page, one component per file
     map/                    MapView, RegionsLayer, OrderMarker, MapClickCatcher, KeepInView, Legend (on the map), mapStyles.ts
@@ -320,3 +365,4 @@ Imports use the `@/` alias for `src/`. Components only draw; state and server ca
 - **Time:** _fill in_.
 - **AI:** I built this with Claude Code (an AI coding assistant). It read the task, wrote the backend, tests, frontend and this README, and checked the page in a headless browser. I reviewed the decisions above and the commits.
 - **AI, follow-up task:** I used Claude Code the same way. I went through each possible change with it before any code was written, then chose the set above. It wrote the candidates endpoint and its tests, the page changes and this section, and drove the new flow in a headless browser. When I gave it mockups of the look I wanted, it rebuilt the layout after them (keeping English).
+- **AI, courier app:** Claude Code set up the Expo app and built it step by step from my requests (the courier select, the order list, refreshing on its own), then wrote the stop rules on the server with their tests, the app's stop list and the [Courier phone app](#courier-phone-app) section. I tried each step on an Android emulator and asked for changes.

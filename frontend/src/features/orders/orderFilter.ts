@@ -1,10 +1,11 @@
 import type { DispatchState, Order } from "@/api/types";
 
-export type OrderFilter = "free" | "taken" | "problem" | "all";
+export type OrderFilter = "free" | "taken" | "done" | "problem" | "all";
 
 export const orderFilterLabels: Record<OrderFilter, string> = {
   free: "Free",
   taken: "Assigned",
+  done: "Done",
   problem: "Problems",
   all: "All",
 };
@@ -28,8 +29,11 @@ function matchesFilter(o: Order, f: OrderFilter, unassignable: Set<string>) {
   switch (f) {
     case "free":
       return !o.courier_id && !unassignable.has(o.id);
+    // Assigned is the work still to do on a route; a stop the courier marked done moves to Done.
     case "taken":
-      return !!o.courier_id;
+      return !!o.courier_id && !o.done_at;
+    case "done":
+      return !!o.done_at;
     case "problem":
       return unassignable.has(o.id) || o.outside_regions;
     default:
@@ -56,5 +60,5 @@ export function countByFilter(state: DispatchState, query: OrderQuery): Record<O
   const unassignable = new Set(state.unassignable.map((u) => u.order_id));
   const found = state.orders.filter((o) => matchesSearch(o, query.region, query.q));
   const count = (f: OrderFilter) => found.filter((o) => matchesFilter(o, f, unassignable)).length;
-  return { free: count("free"), taken: count("taken"), problem: count("problem"), all: found.length };
+  return { free: count("free"), taken: count("taken"), done: count("done"), problem: count("problem"), all: found.length };
 }

@@ -32,15 +32,17 @@ func TestCanTake(t *testing.T) {
 		wantMsg  string
 	}{
 		{"allowed", kamola(), order(Delivery, "Sergeli", 2), Load{}, "", ""},
-		{"exactly fills both limits", kamola(), order(Pickup, "Sergeli", 5), Load{2, 10}, "", ""},
-		{"float sums do not cause false refusals", kamola(), order(Pickup, "Sergeli", 2.9), Load{1, 12.1}, "", ""},
+		{"exactly fills both limits", kamola(), order(Pickup, "Sergeli", 5), Load{Parcels: 2, Kg: 10}, "", ""},
+		{"float sums do not cause false refusals", kamola(), order(Pickup, "Sergeli", 2.9), Load{Parcels: 1, Kg: 12.1}, "", ""},
 		{"broken order", kamola(), broken, Load{}, CodeOrderBroken, "Order o1 cannot be assigned: Missing coordinates"},
 		{"inactive courier", inactive, order(Delivery, "Sergeli", 1), Load{}, CodeInactive, "Kamola is not active today"},
 		{"wrong kind", pickupOnly, order(Delivery, "Sergeli", 1), Load{}, CodeWrongKind, "Kamola does not do deliveries"},
 		{"wrong region", kamola(), order(Delivery, "Bektemir", 1), Load{}, CodeWrongRegion, "Kamola does not work in Bektemir"},
-		{"parcel limit", kamola(), order(Delivery, "Sergeli", 1), Load{3, 3}, CodeParcelLimit, "Kamola has no room: already 3 of 3 parcels today"},
-		{"weight limit", kamola(), order(Delivery, "Sergeli", 6), Load{1, 12}, CodeWeightLimit, "Kamola cannot carry 6 kg more: already 12 of 15 kg today"},
-		{"pickups and deliveries share one limit", kamola(), order(Pickup, "Sergeli", 1), Load{3, 4}, CodeParcelLimit, ""},
+		{"parcel limit", kamola(), order(Delivery, "Sergeli", 1), Load{Parcels: 3, Kg: 3}, CodeParcelLimit, "Kamola has no room: already 3 of 3 parcels today"},
+		{"weight limit", kamola(), order(Delivery, "Sergeli", 6), Load{Parcels: 1, Kg: 12}, CodeWeightLimit, "Kamola cannot carry 6 kg more: already 12 of 15 kg today"},
+		{"no new pickup after the hub", kamola(), order(Pickup, "Sergeli", 1), Load{Parcels: 1, Kg: 1, PastHub: true}, CodePastHub, "Kamola has already left the hub with deliveries, so a new pickup does not fit today's route"},
+		{"a new delivery after the hub is fine", kamola(), order(Delivery, "Sergeli", 1), Load{Parcels: 1, Kg: 1, PastHub: true}, "", ""},
+		{"pickups and deliveries share one limit", kamola(), order(Pickup, "Sergeli", 1), Load{Parcels: 3, Kg: 4}, CodeParcelLimit, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

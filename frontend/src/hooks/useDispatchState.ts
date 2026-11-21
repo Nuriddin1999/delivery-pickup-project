@@ -7,9 +7,10 @@ export const stateKey = ["state"] as const;
 
 /**
  * How often the state is reloaded without any action, so changes made by
- * another dispatcher show up during the day.
+ * another dispatcher, or a stop a courier marks done in the app, show up
+ * within seconds. The state is small, so 5 s costs little.
  */
-export const POLL_MS = 15_000;
+export const POLL_MS = 5_000;
 
 /** The dispatch state and the region shapes (loaded once). */
 export function useDispatchState() {

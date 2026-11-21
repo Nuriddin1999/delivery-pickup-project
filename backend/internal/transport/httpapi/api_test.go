@@ -252,3 +252,80 @@ func TestSetKindsOverHTTP(t *testing.T) {
 		t.Fatalf("drop pickups: %d %v", status, body)
 	}
 }
+
+// routeOf returns the order ids on a courier's route, in route order.
+func routeOf(t *testing.T, srv *httptest.Server, courierID string) []string {
+	t.Helper()
+	_, state := call(t, srv, "GET", "/api/state", "")
+	for _, c := range state["couriers"].([]any) {
+		cm := c.(map[string]any)
+		if cm["id"] != courierID {
+			continue
+		}
+		var ids []string
+		for _, s := range cm["route"].(map[string]any)["stops"].([]any) {
+			if id, _ := s.(map[string]any)["order_id"].(string); id != "" {
+				ids = append(ids, id)
+			}
+		}
+		return ids
+	}
+	t.Fatalf("no courier %s", courierID)
+	return nil
+}
+
+func TestMarkStopDoneOverHTTP(t *testing.T) {
+	srv := newServer(t)
+	call(t, srv, "POST", "/api/auto-assign", "")
+	stops := routeOf(t, srv, "c1")
+	if len(stops) < 2 {
+		t.Fatalf("Aziz needs at least 2 stops for this test, has %v", stops)
+	}
+	first, second := stops[0], stops[1]
+	done := func(courier, order string) string { return "/api/couriers/" + courier + "/stops/" + order + "/done" }
+
+	refused := []struct {
+		name, method, path, body string
+		status                   int
+		code                     string
+	}{
+		{"skipping the first stop", "POST", done("c1", second), "", 409, "out_of_order"},
+		{"another courier's stop", "POST", done("c2", first), "", 409, "not_your_order"},
+		{"unknown courier", "POST", done("c99", first), "", 404, "not_found"},
+		{"unknown order", "POST", done("c1", "o99"), "", 404, "not_found"},
+	}
+	for _, c := range refused {
+		t.Run(c.name, func(t *testing.T) {
+			status, body := call(t, srv, c.method, c.path, c.body)
+			if status != c.status || body["code"] != c.code {
+				t.Errorf("got %d %v, want %d %s", status, body, c.status, c.code)
+			}
+		})
+	}
+
+	status, body := call(t, srv, "POST", done("c1", first), "")
+	if status != 200 || body["done_at"] == nil {
+		t.Fatalf("marking the first stop: %d %v", status, body)
+	}
+
+	after := []struct {
+		name, method, path, body string
+		code                     string
+	}{
+		{"the same stop twice", "POST", done("c1", first), "", "already_done"},
+		{"taking a done order off", "DELETE", "/api/orders/" + first + "/courier", "", "order_done"},
+		{"moving a done order", "PUT", "/api/orders/" + first + "/courier", `{"courier_id":"c5"}`, "order_done"},
+	}
+	for _, c := range after {
+		t.Run(c.name, func(t *testing.T) {
+			status, body := call(t, srv, c.method, c.path, c.body)
+			if status != 409 || body["code"] != c.code {
+				t.Errorf("got %d %v, want 409 %s", status, body, c.code)
+			}
+		})
+	}
+
+	if status, body := call(t, srv, "POST", done("c1", second), ""); status != 200 {
+		t.Errorf("the second stop after the first: %d %v", status, body)
+	}
+}

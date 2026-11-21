@@ -18,7 +18,8 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
  * - while the app is on screen it reloads every POLL_MS without showing anything,
  *   so an order the dispatcher gives out appears on the phone within seconds;
  * - coming back to the app from the background reloads at once;
- * - pull to refresh shows the spinner.
+ * - pull to refresh shows the spinner;
+ * - after the courier marks a stop, sync() loads at once.
  * A failed background reload keeps the list and sets `offline`, so the screen
  * does not jump to an error while the courier is looking at it.
  */
@@ -29,7 +30,9 @@ export function useDispatchState() {
   const hasData = useRef(false);
   const inFlight = useRef<AbortController | null>(null);
 
-  const run = useCallback((mode: 'first' | 'pull' | 'quiet') => {
+  // 'sync' is a quiet load that must not be skipped: right after a change, a
+  // poll already on its way may carry the data from before it.
+  const run = useCallback((mode: 'first' | 'pull' | 'quiet' | 'sync') => {
     if (mode === 'quiet' && inFlight.current) return; // the previous one is still running
     inFlight.current?.abort();
     const ctrl = new AbortController();
@@ -91,5 +94,6 @@ export function useDispatchState() {
     offline,
     retry: () => run('first'),
     refresh: () => run('pull'),
+    sync: () => run('sync'),
   };
 }

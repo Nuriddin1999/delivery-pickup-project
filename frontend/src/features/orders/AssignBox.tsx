@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CourierView, DispatchState, Order } from "@/api/types";
 import { errorMessage } from "@/api/client";
 import { dispatchApi } from "@/api/dispatchApi";
+import { formatTime } from "@/domain/format";
 import { isBroken } from "@/domain/orders";
 import type { Undo } from "@/hooks/useToast";
 import { Alert } from "@/shared/ui/Alert";
@@ -84,7 +85,14 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
       <OrderDetails order={order} holder={current} holderColor={current ? colors[current.id] : undefined} />
       {!isBroken(order) && reason && !current && <Alert tone="warn">No courier can take it now: {reason}</Alert>}
 
-      {!isBroken(order) && (
+      {/* A done stop stays with its courier; the server refuses moving it too. */}
+      {order.done_at && current && (
+        <Alert tone="note">
+          {current.name} marked this stop done at {formatTime(order.done_at)}. A done order stays with its courier.
+        </Alert>
+      )}
+
+      {!isBroken(order) && !order.done_at && (
         <>
           <div className="border-t border-slate-200" />
           <h3 className="m-0 text-[18px] font-semibold">{current ? "Move to" : "Who gets it"}</h3>
