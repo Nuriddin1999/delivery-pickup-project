@@ -48,7 +48,8 @@ export default function App() {
         <View style={styles.block}>
           <Text style={styles.text}>Please select yourself:</Text>
           <View style={styles.pickerBox}>
-            <Picker selectedValue={courierId} onValueChange={(id) => setCourierId(String(id))}>
+            {/* "dropdown" opens the list right under the field; Android's default "dialog" floats it apart. */}
+            <Picker mode="dropdown" selectedValue={courierId} onValueChange={(id) => setCourierId(String(id))}>
               <Picker.Item label="Couriers" value="" color="#94a3b8" />
               {load.couriers.map((c) => (
                 <Picker.Item key={c.id} label={c.name} value={c.id} />
