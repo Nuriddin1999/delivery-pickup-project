@@ -57,7 +57,7 @@ export function CourierCard({
       <div>
         <button
           type="button"
-          className="grid w-full cursor-pointer grid-cols-[1fr_60px_88px_64px] items-center gap-2.5 text-left"
+          className="grid w-full cursor-pointer grid-cols-[1fr_60px_88px_64px] items-center gap-2.5 text-left max-sm:grid-cols-[1fr_56px_64px]"
           onClick={onToggle}
           aria-expanded={open}
           title={open ? "Close" : "Show stops here and the route on the map"}
@@ -73,10 +73,10 @@ export function CourierCard({
               ›
             </span>
             <Swatch color={color} />
-            <b className="shrink-0 text-[15px]">{c.name}</b>
+            <b className="min-w-0 truncate text-[15px]">{c.name}</b>
             {c.active ? (
               <span
-                className="truncate text-xs text-slate-500"
+                className="truncate text-xs text-slate-500 max-sm:hidden"
                 title={c.kinds.map(kindLabel).join(" + ")}
               >
                 {c.kinds.map(kindShort).join("+")}
@@ -101,6 +101,7 @@ export function CourierCard({
             title="Parcels today"
           />
           <MiniMeter
+            className="max-sm:hidden"
             used={c.load.kg}
             max={c.max_kg}
             text={`${formatKg(c.load.kg)} / ${c.max_kg}`}

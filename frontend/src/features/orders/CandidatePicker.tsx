@@ -36,7 +36,7 @@ export function CandidatePicker({ order, candidates, couriersById, colors, chose
           <label
             key={c.id}
             className={cn(
-              "flex cursor-pointer items-center gap-3 rounded-xl border-2 px-3 py-2.5 transition-colors",
+              "flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border-2 px-3 py-2.5 transition-colors",
               cand.allowed
                 ? chosen
                   ? "border-brand-500 bg-brand-50"
@@ -57,7 +57,7 @@ export function CandidatePicker({ order, candidates, couriersById, colors, chose
               {cand.allowed && <span className="text-xs text-slate-500 tabular-nums">+{cand.added_km.toFixed(2)} km to the route</span>}
             </span>
             {cand.allowed ? (
-              <span className="flex flex-col border-l border-slate-200 pl-3 text-[13px] tabular-nums">
+              <span className="flex flex-col border-l border-slate-200 pl-3 text-[13px] tabular-nums max-sm:w-full max-sm:flex-row max-sm:flex-wrap max-sm:gap-x-3 max-sm:border-l-0 max-sm:pl-7">
                 <span className="text-xs text-slate-500">After giving:</span>
                 <span className="flex items-center gap-1.5">
                   <BoxIcon className="size-4 text-slate-500" /> {cand.load.parcels + 1} / {c.max_parcels} parcels
@@ -67,7 +67,7 @@ export function CandidatePicker({ order, candidates, couriersById, colors, chose
                 </span>
               </span>
             ) : (
-              <span className="max-w-[55%] border-l border-slate-200 pl-3 text-[13px] text-slate-500">{cand.reason}</span>
+              <span className="max-w-[55%] border-l border-slate-200 pl-3 text-[13px] text-slate-500 max-sm:max-w-none max-sm:basis-full max-sm:border-l-0 max-sm:pl-7">{cand.reason}</span>
             )}
           </label>
         );

@@ -27,7 +27,7 @@ export function OrdersTable({ state, colors, list, selectedId, onSelect, expande
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-col gap-2 border-b border-slate-100 px-3 pt-3 pb-2">
+      <div className="flex flex-col gap-2 border-b border-slate-100 px-3 pt-3 pb-2 max-sm:px-2">
         <OrderFilters query={list.query} counts={list.counts} regions={state.regions} onChange={list.setQuery} />
         <div className="flex items-center justify-between gap-2">
           <Checkbox checked={list.queue} onChange={list.setQueue}>
@@ -46,21 +46,21 @@ export function OrdersTable({ state, colors, list, selectedId, onSelect, expande
         </div>
       </div>
 
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto">
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto max-[1000px]:overflow-x-auto max-[1000px]:overflow-y-visible">
         {list.visible.length === 0 ? (
           <p className={`${hintText} p-4`}>No orders match. {list.query.show === "free" && "Every order a courier can take has one."}</p>
         ) : (
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse max-sm:text-[13px]">
             <thead>
               <tr>
                 <th className={head} />
                 <th className={head}>Order</th>
-                <th className={head}>Type</th>
+                <th className={`${head} max-sm:hidden`}>Type</th>
                 <th className={head}>Region</th>
                 <th className={`${head} text-right`}>Weight</th>
-                <th className={head}>Created</th>
+                <th className={`${head} max-sm:hidden`}>Created</th>
                 <th className={head}>Courier</th>
-                <th className={head} />
+                <th className={`${head} max-sm:hidden`} />
               </tr>
             </thead>
             <tbody>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DispatchState } from "@/api/types";
 import { courierColors } from "@/domain/couriers";
 import { emptyStart, readStart, startFromPoint, type StartFields } from "@/domain/courierForm";
@@ -32,6 +32,9 @@ interface Props {
 
 const panel = "overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm";
 
+/** Below this width the columns stack and the page scrolls as a whole (same as the max-[1000px] classes). */
+const NARROW = "(max-width: 1000px)";
+
 /**
  * The page: a dark header; on the left the map (region bar and legend on
  * top of it) with the order table under it; on the right the open order or
@@ -46,6 +49,11 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
   useHotkeys({ u: undo ?? undefined });
   const pointHighlight = usePointHighlight();
   const split = useMapSplit();
+  const asideRef = useRef<HTMLElement>(null);
+  // On a phone the order panel sits under the table: bring it into view when an order is picked.
+  useEffect(() => {
+    if (route.selectedOrderId && window.matchMedia(NARROW).matches) asideRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [route.selectedOrderId]);
   // Height changes slide, except while the bar is dragged: then the map follows the pointer.
   const slide = !split.dragging && "duration-300 ease-out motion-reduce:transition-none";
   const [showShorter, setShowShorter] = useState(false);
@@ -65,14 +73,15 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
   };
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col max-[1000px]:h-auto max-[1000px]:min-h-screen">
       <Header updatedAt={updatedAt} autoAssignBusy={autoAssign.busy} onAutoAssign={autoAssign.run} search={route.search} />
 
-      <main className="flex min-h-0 flex-1 gap-3 p-3 max-[1000px]:flex-col max-[1000px]:overflow-y-auto">
-        <section ref={split.columnRef} className="flex min-h-0 min-w-0 flex-1 flex-col max-[1000px]:h-[85vh] max-[1000px]:flex-none">
+      <main className="flex min-h-0 flex-1 gap-3 p-3 max-[1000px]:flex-col max-sm:p-2">
+        <section ref={split.columnRef} className="flex min-h-0 min-w-0 flex-1 flex-col max-[1000px]:flex-none max-[1000px]:gap-3">
           {/* The map's share of the column; 0 when the table is expanded. The bar below takes 12px. */}
           <div
-            className={cn("flex-none overflow-hidden transition-[height,opacity]", slide, split.tableExpanded && "opacity-0")}
+            // On a narrow screen the map has a fixed height (the bar is hidden); "!" wins over the inline height.
+            className={cn("flex-none overflow-hidden transition-[height,opacity]", slide, split.tableExpanded ? "opacity-0" : "max-[1000px]:h-[55svh]!")}
             style={{ height: split.tableExpanded ? 0 : `calc(${split.mapShare * 100}% - 6px)` }}
             aria-hidden={split.tableExpanded}
             inert={split.tableExpanded}
@@ -117,7 +126,7 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
             onKeyDown={split.onKeyDown}
             onDoubleClick={split.reset}
             className={cn(
-              "group flex flex-none cursor-row-resize touch-none items-center justify-center overflow-hidden outline-none transition-[height,opacity]",
+              "group flex flex-none cursor-row-resize touch-none items-center justify-center overflow-hidden outline-none transition-[height,opacity] max-[1000px]:hidden",
               slide,
               split.tableExpanded ? "pointer-events-none h-0 opacity-0" : "h-3",
             )}
@@ -125,7 +134,7 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
             <span className={cn("h-1.5 w-14 rounded-full transition-colors group-hover:bg-brand-500 group-focus-visible:bg-brand-500", split.dragging ? "bg-brand-600" : "bg-slate-300")} />
           </div>
 
-          <div className={`${panel} flex min-h-0 flex-1 flex-col`}>
+          <div className={`${panel} flex min-h-0 flex-1 flex-col max-[1000px]:flex-none`}>
             <OrdersTable
               state={state}
               colors={colors}
@@ -139,9 +148,9 @@ export function Dashboard({ state, shapes, loadError, updatedAt }: Props) {
           </div>
         </section>
 
-        <aside className={`${panel} flex w-110 flex-none flex-col max-[1000px]:w-full`}>
+        <aside ref={asideRef} className={`${panel} flex w-110 flex-none scroll-mt-2 flex-col max-[1000px]:w-full`}>
           {!isAdding && <SideTabs active={route.tab} search={route.search} />}
-          <div className="no-scrollbar flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+          <div className="no-scrollbar flex flex-1 flex-col gap-3 overflow-y-auto p-4 max-[1000px]:overflow-visible max-sm:p-3">
             {autoAssign.result && <AutoAssignReport result={autoAssign.result} couriers={state.couriers} onClose={autoAssign.close} onSelectOrder={route.selectOrder} />}
             <SidePanelRoutes
               state={state}
