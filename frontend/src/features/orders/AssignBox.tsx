@@ -1,4 +1,5 @@
 import type { CourierView, DispatchState, Order } from "@/api/types";
+import { errorMessage } from "@/api/client";
 import { dispatchApi } from "@/api/dispatchApi";
 import { kindLabel } from "@/domain/format";
 import { isBroken } from "@/domain/orders";
@@ -34,7 +35,8 @@ interface Props {
 export function AssignBox({ order, state, couriersById, colors, onClose, onChanged }: Props) {
   const current = order.courier_id ? couriersById[order.courier_id] : undefined;
   const reason = state.unassignable.find((u) => u.order_id === order.id)?.reason;
-  const candidates = useCandidates(order.id).data?.candidates;
+  const candidatesQuery = useCandidates(order.id);
+  const candidates = candidatesQuery.data?.candidates;
   const actions = useOrderActions(order.id);
 
   const giveTo = (courierId: string) => {
@@ -78,7 +80,16 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
               </Button>
             )}
           </div>
-          <CandidateList order={order} candidates={candidates} couriersById={couriersById} colors={colors} busy={actions.busy} onPick={giveTo} />
+          <CandidateList
+            order={order}
+            candidates={candidates}
+            couriersById={couriersById}
+            colors={colors}
+            busy={actions.busy}
+            loadError={candidatesQuery.isError && !candidates ? errorMessage(candidatesQuery.error) : null}
+            onRetry={() => void candidatesQuery.refetch()}
+            onPick={giveTo}
+          />
         </>
       )}
       {actions.error && <Alert tone="error">{actions.error}</Alert>}

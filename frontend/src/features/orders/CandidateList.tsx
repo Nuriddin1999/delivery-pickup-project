@@ -1,5 +1,7 @@
 import type { Candidate, CourierView, Order } from "@/api/types";
 import { formatKg } from "@/domain/format";
+import { Alert } from "@/shared/ui/Alert";
+import { Button } from "@/shared/ui/Button";
 import { Swatch } from "@/shared/ui/Swatch";
 import { Tag } from "@/shared/ui/Tag";
 import { cn, hintText } from "@/shared/ui/styles";
@@ -10,6 +12,9 @@ interface Props {
   couriersById: Record<string, CourierView>;
   colors: Record<string, string>;
   busy: boolean;
+  /** why the list could not be loaded, e.g. the server is an older build without this endpoint */
+  loadError: string | null;
+  onRetry: () => void;
   onPick: (courierId: string) => void;
 }
 
@@ -19,7 +24,16 @@ interface Props {
  * Refused couriers are folded away with the reason, and can still be tried,
  * so the server explains the refusal in its own words.
  */
-export function CandidateList({ order, candidates, couriersById, colors, busy, onPick }: Props) {
+export function CandidateList({ order, candidates, couriersById, colors, busy, loadError, onRetry, onPick }: Props) {
+  if (loadError)
+    return (
+      <Alert tone="error">
+        Could not load the couriers for this order: {loadError}{" "}
+        <Button variant="link" onClick={onRetry}>
+          Try again
+        </Button>
+      </Alert>
+    );
   if (!candidates) return <p className={hintText}>Checking couriers…</p>;
   const allowed = candidates.filter((c) => c.allowed);
   const refused = candidates.filter((c) => !c.allowed);
