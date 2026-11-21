@@ -19,8 +19,8 @@ export function Toast({ message, tone = "info", onUndo }: Props) {
     >
       {message}
       {onUndo && (
-        <button type="button" className="cursor-pointer rounded border border-white/40 px-2 py-0.5 font-semibold hover:bg-white/10" onClick={onUndo} title="Undo (U)">
-          Undo <kbd className="ml-1 text-xs opacity-70">U</kbd>
+        <button type="button" className="cursor-pointer rounded border border-white/40 px-2 py-0.5 font-semibold hover:bg-white/10" onClick={onUndo}>
+          Undo
         </button>
       )}
     </div>

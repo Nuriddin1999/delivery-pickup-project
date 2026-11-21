@@ -3,7 +3,6 @@ import type { CourierView, DispatchState, Order } from "@/api/types";
 import { errorMessage } from "@/api/client";
 import { dispatchApi } from "@/api/dispatchApi";
 import { isBroken } from "@/domain/orders";
-import { useHotkeys, type Hotkeys } from "@/hooks/useHotkeys";
 import type { Undo } from "@/hooks/useToast";
 import { Alert } from "@/shared/ui/Alert";
 import { Button } from "@/shared/ui/Button";
@@ -33,8 +32,7 @@ interface Props {
 /**
  * The open order: what it is, who could get it, and one big button. The
  * nearest allowed courier is chosen at first, so giving out an order is a
- * single click on the button (or Enter); keys 1–9 give it straight to that
- * allowed courier.
+ * single click on the button.
  */
 export function AssignBox({ order, state, couriersById, colors, onClose, onChanged }: Props) {
   const current = order.courier_id ? couriersById[order.courier_id] : undefined;
@@ -66,21 +64,13 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
     actions.unassign(() => onChanged({ message: `${order.id} taken off ${current.name}`, undo: () => dispatchApi.assign(order.id, current.id), newlyAssigned: false }));
   };
 
-  // Enter gives the order to the chosen courier; 1–9 straight to that allowed courier.
-  const keys: Hotkeys = { Escape: onClose, Enter: chosenId ? () => giveTo(chosenId) : undefined };
-  candidates
-    ?.filter((c) => c.allowed)
-    .slice(0, 9)
-    .forEach((c, i) => (keys[String(i + 1)] = () => giveTo(c.courier_id)));
-  useHotkeys(keys);
-
   const verb = current ? "Move" : "Give";
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-2">
         <h2 className="m-0 text-[28px] leading-tight font-bold">Order {order.id}</h2>
-        <button type="button" className="cursor-pointer rounded-lg px-2 py-1 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" onClick={onClose} title="Close (Esc)">
+        <button type="button" className="cursor-pointer rounded-lg px-2 py-1 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" onClick={onClose} title="Close">
           ×
         </button>
       </div>
@@ -123,7 +113,6 @@ export function AssignBox({ order, state, couriersById, colors, onClose, onChang
               "h-13 w-full cursor-pointer rounded-xl text-[18px] font-semibold shadow-sm transition-colors disabled:cursor-default disabled:opacity-50",
               chosenAllowed || !chosen ? "bg-brand-600 text-white hover:bg-brand-700" : "border-2 border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
             )}
-            title="Enter"
           >
             {actions.busy ? "Saving…" : chosen ? (chosenAllowed ? `${verb} to ${chosen.name}` : `Try ${chosen.name} anyway`) : "Choose a courier"}
           </button>

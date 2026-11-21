@@ -31,7 +31,6 @@ export function CandidatePicker({ order, candidates, couriersById, colors, chose
         const c = couriersById[cand.courier_id];
         if (!c) return null;
         const chosen = chosenId === c.id;
-        const key = cand.allowed ? allowed.indexOf(cand) + 1 : 0;
         return (
           <label
             key={c.id}
@@ -52,7 +51,6 @@ export function CandidatePicker({ order, candidates, couriersById, colors, chose
                 <Swatch color={colors[c.id]} />
                 {c.name}
                 {cand.nearest && <Tag tone="info">nearest</Tag>}
-                {key > 0 && key <= 9 && <kbd className="ml-auto rounded border border-slate-300 bg-white px-1 text-[11px] font-normal text-slate-500">{key}</kbd>}
               </span>
               {cand.allowed && <span className="text-xs text-slate-500 tabular-nums">+{cand.added_km.toFixed(2)} km to the route</span>}
             </span>

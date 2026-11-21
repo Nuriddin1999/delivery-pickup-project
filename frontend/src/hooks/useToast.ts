@@ -18,7 +18,7 @@ export interface ToastMessage {
 
 /**
  * A message that hides itself after a few seconds. A message with an undo
- * stays longer and offers an "Undo" button (or the U key).
+ * stays longer and offers an "Undo" button.
  */
 export function useToast() {
   const queryClient = useQueryClient();

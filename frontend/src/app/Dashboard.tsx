@@ -13,7 +13,6 @@ import { useCandidates } from "@/features/orders/useCandidates";
 import { useOrderList } from "@/features/orders/useOrderList";
 import { RegionEditor } from "@/features/regions/RegionEditor";
 import { useRegionEditor } from "@/features/regions/useRegionEditor";
-import { useHotkeys } from "@/hooks/useHotkeys";
 import { useToast } from "@/hooks/useToast";
 import { Toast } from "@/shared/ui/Toast";
 import { cn } from "@/shared/ui/styles";
@@ -44,8 +43,7 @@ export function Dashboard({ state, shapes, loadError }: Props) {
   const { toast, showToast, undo } = useToast();
   const regions = useRegionEditor(state.couriers);
   const autoAssign = useAutoAssign((message) => showToast(message, undefined, "error"));
-  const orderList = useOrderList(state, route.selectedOrderId, route.selectOrder);
-  useHotkeys({ u: undo ?? undefined });
+  const orderList = useOrderList(state);
   const pointHighlight = usePointHighlight();
   const split = useMapSplit();
   const asideRef = useRef<HTMLElement>(null);

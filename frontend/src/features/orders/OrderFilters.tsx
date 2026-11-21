@@ -1,8 +1,6 @@
 import { cn, inputClass } from "@/shared/ui/styles";
 import { orderFilterLabels, type OrderFilter, type OrderQuery } from "./orderFilter";
 
-export const SEARCH_ID = "order-search";
-
 interface Props {
   query: OrderQuery;
   counts: Record<OrderFilter, number>;
@@ -33,10 +31,9 @@ export function OrderFilters({ query, counts, regions, onChange }: Props) {
       </div>
       <div className="ml-auto flex gap-2 max-sm:ml-0 max-sm:w-full">
         <input
-          id={SEARCH_ID}
           type="search"
           className={cn(inputClass, "w-44 max-sm:w-auto max-sm:flex-1")}
-          placeholder="Find order id…  ( / )"
+          placeholder="Find order id…"
           value={query.q}
           onChange={(e) => onChange({ q: e.target.value })}
           onKeyDown={(e) => e.key === "Escape" && e.currentTarget.blur()}

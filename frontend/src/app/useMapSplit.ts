@@ -69,7 +69,7 @@ export function useMapSplit() {
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
     e.preventDefault();
-    e.stopPropagation(); // the order list uses the arrows too
+    e.stopPropagation();
     setShare(clamp(share + (e.key === "ArrowUp" ? -KEY_STEP : KEY_STEP)));
   };
 

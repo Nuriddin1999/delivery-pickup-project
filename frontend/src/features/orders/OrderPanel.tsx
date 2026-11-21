@@ -15,7 +15,7 @@ interface Props {
 /**
  * The "Order" tab: the open order with its couriers. With "open the next
  * order" on, giving out an order opens the next free one in the list, so
- * working through the list is one click (or key) per order.
+ * working through the list is one click per order.
  */
 export function OrderPanel({ state, colors, list, selectedId, onSelect, onChanged }: Props) {
   const couriersById = Object.fromEntries(state.couriers.map((c) => [c.id, c]));
@@ -37,7 +37,7 @@ export function OrderPanel({ state, colors, list, selectedId, onSelect, onChange
       <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-slate-500">
         <p className="text-[16px] font-medium text-slate-700">No order open</p>
         <p className="text-[13px]">
-          Pick an order on the map or in the table, or press <kbd className="rounded border border-slate-300 px-1">↓</kbd> to start with the oldest.
+          Pick an order on the map or in the table.
         </p>
       </div>
     );
