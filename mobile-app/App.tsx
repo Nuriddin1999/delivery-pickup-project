@@ -62,6 +62,7 @@ export default function App() {
           </Text>
           <FlatList
             style={styles.list}
+            showsVerticalScrollIndicator={false}
             data={orders}
             keyExtractor={(o) => o.id}
             renderItem={({ item, index }) =>
