@@ -178,6 +178,22 @@ Other things in the data:
 
 The follow-up task ([docs/TASK2.md](docs/TASK2.md)) asked me to improve the page for a dispatcher who uses it all working day, in three ways: **layout**, **readability**, and **the number of steps needed to assign an order**, and to choose the changes myself. Below is every change, which of the three it serves, and why I made it. The look (dark header, map over the order table, order panel with courier cards and one big button) follows mockups I was given. The texts stay in English like the rest of the project, including the server's messages.
 
+### Before and after
+
+The screenshots are in [screenshots/](screenshots/). The "before" ones show the page before these changes. The "after" ones show the finished page with seven orders given out (o23, o01, o05 → Aziz; o02, o11 → Bekzod; o03 → Dilnoza; o14 → Kamola), so the loads and routes differ from the "before" pictures.
+
+| | Before | After |
+| --- | --- | --- |
+| Choosing Bekzod's regions | ![before](screenshots/before-regions.png) | ![after](screenshots/after-regions.png) |
+| Adding a courier | ![before](screenshots/before-add-courier.png) | ![after](screenshots/after-add-courier.png) |
+| Courier panel | ![before](screenshots/before-couriers.png) | ![after](screenshots/after-couriers.png) |
+
+After only:
+
+| An order open, ready to assign | On a phone (360 px wide) |
+| --- | --- |
+| ![an order open with the courier cards](screenshots/after-order-selected.png) | <img src="screenshots/after-phone-order.png" alt="the page on a 360 px phone" width="240"> |
+
 ### Steps to assign an order
 
 | Way of working | Before | After |
