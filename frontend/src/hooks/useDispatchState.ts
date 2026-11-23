@@ -12,16 +12,24 @@ export const stateKey = ["state"] as const;
  */
 export const POLL_MS = 5_000;
 
-/** The dispatch state and the region shapes (loaded once). */
+/**
+ * The dispatch state and the region shapes. The shapes never change, so they
+ * are loaded once; if that fails (the server was down), they are tried again
+ * every POLL_MS until they arrive, so the error clears once the server is back.
+ */
 export function useDispatchState() {
   const state = useQuery({ queryKey: stateKey, queryFn: dispatchApi.state, refetchInterval: POLL_MS });
-  const shapes = useQuery({ queryKey: ["regionShapes"], queryFn: dispatchApi.regionShapes, staleTime: Infinity });
+  const shapes = useQuery({
+    queryKey: ["regionShapes"],
+    queryFn: dispatchApi.regionShapes,
+    staleTime: Infinity,
+    refetchInterval: (query) => (query.state.data ? false : POLL_MS),
+  });
   const error = state.error ?? shapes.error;
 
   return {
     state: state.data ?? null,
     shapes: shapes.data ?? null,
     loadError: error ? errorMessage(error) : null,
-    refresh: () => void state.refetch(),
   };
 }
