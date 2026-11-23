@@ -84,7 +84,8 @@ Every error response is JSON: `{"code": "...", "error": "plain sentence"}`. A fo
 | PUT | `/api/orders/{id}/courier` | `{courier_id}` | assigns the order, or moves it if another courier holds it; 409 `order_done` when its stop is done |
 | DELETE | `/api/orders/{id}/courier` | | takes the order off its courier; 409 `order_done` when its stop is done |
 | POST | `/api/couriers/{id}/stops/{orderId}/done` | | the courier marks the stop of their order done; the order comes back with `done_at`. 409 `not_your_order`, `already_done` or `out_of_order` (see [stop rules](#stop-rules)) |
-| POST | `/api/auto-assign` | | `{assigned: [...], unplaced: [{order_id, reason}]}` |
+| GET | `/api/auto-assign` | | the plan, changing nothing: `{assigned: [{order_id, courier_id, added_km}], unplaced: [{order_id, reason}]}`, assigned grouped by courier in route order |
+| POST | `/api/auto-assign` | `{assignments: [{order_id, courier_id}]}` | gives out exactly that confirmed plan, in its order, all or nothing; 409 `plan_outdated` naming the item when the data changed since the plan, and nothing is assigned. With no body it plans and gives out in one step (for curl) |
 
 Status codes: 400 for an unusable request (bad JSON, wrong types, unknown fields, failed checks), 404 for an unknown order or courier, 409 for a rule refusal.
 
@@ -168,6 +169,8 @@ Other things in the data:
 ## Bonus parts
 
 - **Auto-assign** (button at the top right). It plans all free, valid orders together and gives each one to a courier allowed to take it. Orders already assigned are not touched. Orders it cannot place are listed with the reason: either the permanent reason (region, kind, inactive, weight) or "Every courier allowed to take it is full: …" with each courier's limit.
+  - **Nothing is given out before the dispatcher confirms.** The button opens "Auto-assign: check before giving out": the plan grouped by courier, each order with its region, weight and the km it adds, each courier's parcels and kg after the plan against their limits, and the orders not placed with the reason (folded away). "Confirm: give out 14 orders" gives it out and closes the dialog with a short message ("14 orders given out"); there is no report afterwards, since the dialog already showed it. Cancel, Escape or a click outside closes it and nothing changes. Auto-assign touches many orders at once, so a look before it happens is cheaper than undoing it order by order.
+  - **What is confirmed is what is given out.** The page sends back the exact plan it showed, and the server gives out those items in that order or none of them. If something changed in between (another dispatcher gave one of the orders out, a courier filled up, a region was taken away), the server refuses with `plan_outdated` and says which order and why, for example "The plan is out of date: o01 already has a courier (Aziz). Nothing was assigned; check the plan again". The dialog shows that with "Check again", which asks for a fresh plan. I chose this over planning again on confirm, because then the dispatcher could get a different plan from the one they read.
   - **How "nearest" is measured:** by how much a courier's route grows, in km, when the order is added to it. I picked this over "closest start point" because it accounts for where the courier already has to go, including the trip to the hub. For a courier with no orders it is roughly start → order → hub. The order panel's "nearest" card uses the same measure for one order.
   - **What the plan aims for**, in this order: (1) place as many orders as possible, (2) keep the total km of all routes as low as possible. An order left out is a parcel that does not move today, so it weighs more than any number of km. The plan lives in [domain/plan.go](backend/internal/domain/plan.go) (`PlanAssignments`), with no I/O, and every step checks `CanTake`.
   - **How it gets there:**
@@ -322,6 +325,7 @@ The list refreshes on its own every 5 seconds while the app is open (and at once
 - [domain/kinds_change_test.go](backend/internal/domain/kinds_change_test.go): changing a courier's kinds: known kinds only, at least one, adding always allowed, taking away refused while orders of that kind are held (also in the use case test on the seed data and over HTTP).
 - [domain/stops_test.go](backend/internal/domain/stops_test.go): marking stops done: next stop allowed, skipping a stop or delivering before the pickups refused, twice refused, another courier's order refused; a done order cannot leave its courier; a done delivery means the courier has left the hub (and `rules_test.go` refuses a new pickup then).
 - `TestMarkStopDoneOverHTTP` in [transport/httpapi/api_test.go](backend/internal/transport/httpapi/api_test.go): after auto-assign, stop requests sent by hand: out of order, another courier, unknown courier or order, twice, and taking off or moving a done order are all refused with their codes; in order they pass.
+- `TestAutoAssignPlanThenConfirm` in the same file: the plan changes nothing; a plan gone stale (its first order given out by hand meanwhile) is refused whole with `plan_outdated` naming that order; the same plan, once it fits again, is given out exactly as confirmed; a plan with a refused courier, an unknown order, an order twice, an unknown field or no assignments is refused with a reason.
 - [config/config_test.go](backend/internal/config/config_test.go): reading `.env`, and flags winning over it.
 
 ## Architecture
@@ -378,7 +382,7 @@ frontend/src/
                             AssignBox, OrderDetails, CandidatePicker, useOrderList, useCandidates, useOrderActions,
                             useOrderQuery, orderFilter.ts
     add-courier/            AddCourierForm, useCourierForm (React Hook Form + zod schema from domain/courierForm.ts)
-    auto-assign/            AutoAssignReport, useAutoAssign
+    auto-assign/            AutoAssignDialog (the plan to confirm), useAutoAssign
   shared/ui/                Button, Card, CardHeader, Tag, Alert, Toast, Swatch, Checkbox, FormField, icons, arrowPath, styles.ts
                             (colours: teal `brand-*` and `navy-*` tokens in index.css)
 data/                       data.json, regions.geojson (seed)

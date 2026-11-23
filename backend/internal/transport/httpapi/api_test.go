@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -327,5 +328,85 @@ func TestMarkStopDoneOverHTTP(t *testing.T) {
 
 	if status, body := call(t, srv, "POST", done("c1", second), ""); status != 200 {
 		t.Errorf("the second stop after the first: %d %v", status, body)
+	}
+}
+
+// The page shows the plan first and gives out only what the dispatcher
+// confirmed. A plan that no longer fits is refused whole.
+func TestAutoAssignPlanThenConfirm(t *testing.T) {
+	srv := newServer(t)
+	assignedCount := func() int {
+		_, state := call(t, srv, "GET", "/api/state", "")
+		n := 0
+		for _, o := range state["orders"].([]any) {
+			if o.(map[string]any)["courier_id"] != nil {
+				n++
+			}
+		}
+		return n
+	}
+
+	// The preview changes nothing.
+	status, plan := call(t, srv, "GET", "/api/auto-assign", "")
+	items := plan["assigned"].([]any)
+	if status != 200 || len(items) == 0 || len(plan["unplaced"].([]any)) == 0 {
+		t.Fatalf("plan: %d %v", status, plan)
+	}
+	if n := assignedCount(); n != 0 {
+		t.Fatalf("the preview assigned %d orders", n)
+	}
+
+	// The plan goes stale: its first order is given out by hand meanwhile.
+	first := items[0].(map[string]any)
+	var body strings.Builder
+	body.WriteString(`{"assignments":[`)
+	for i, it := range items {
+		m := it.(map[string]any)
+		if i > 0 {
+			body.WriteString(",")
+		}
+		fmt.Fprintf(&body, `{"order_id":%q,"courier_id":%q}`, m["order_id"], m["courier_id"])
+	}
+	body.WriteString(`]}`)
+	confirmed := body.String()
+
+	if status, _ := call(t, srv, "PUT", "/api/orders/"+first["order_id"].(string)+"/courier", fmt.Sprintf(`{"courier_id":%q}`, first["courier_id"])); status != 200 {
+		t.Fatalf("hand assignment: %d", status)
+	}
+	status, res := call(t, srv, "POST", "/api/auto-assign", confirmed)
+	if status != 409 || res["code"] != "plan_outdated" || !strings.Contains(res["error"].(string), first["order_id"].(string)) {
+		t.Fatalf("stale plan: want 409 plan_outdated naming %v, got %d %v", first["order_id"], status, res)
+	}
+	if n := assignedCount(); n != 1 {
+		t.Fatalf("a refused plan must assign nothing, %d orders have a courier", n)
+	}
+
+	// Taken back, the same plan goes through exactly as confirmed.
+	call(t, srv, "DELETE", "/api/orders/"+first["order_id"].(string)+"/courier", "")
+	status, res = call(t, srv, "POST", "/api/auto-assign", confirmed)
+	if status != 200 || len(res["assigned"].([]any)) != len(items) {
+		t.Fatalf("confirm: %d %v", status, res)
+	}
+	for i, it := range res["assigned"].([]any) {
+		got, want := it.(map[string]any), items[i].(map[string]any)
+		if got["order_id"] != want["order_id"] || got["courier_id"] != want["courier_id"] || got["added_km"] != want["added_km"] {
+			t.Errorf("item %d: got %v, confirmed %v", i, got, want)
+		}
+	}
+
+	// Bad plans are refused with a reason.
+	for _, tc := range []struct {
+		body   string
+		status int
+	}{
+		{`{"assignments":[{"order_id":"o12","courier_id":"c5"}]}`, 409},                                      // Kamola does not work in Bektemir
+		{`{"assignments":[{"order_id":"o99","courier_id":"c1"}]}`, 404},                                      // unknown order
+		{`{"assignments":[{"order_id":"o07","courier_id":"c1"},{"order_id":"o07","courier_id":"c1"}]}`, 400}, // twice
+		{`{"plan":[]}`, 400}, // unknown field
+		{`{}`, 400},          // no assignments
+	} {
+		if status, res := call(t, srv, "POST", "/api/auto-assign", tc.body); status != tc.status || res["error"] == "" {
+			t.Errorf("%s: want %d, got %d %v", tc.body, tc.status, status, res)
+		}
 	}
 }

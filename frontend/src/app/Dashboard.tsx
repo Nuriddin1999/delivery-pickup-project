@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { DispatchState } from "@/api/types";
 import { courierColors } from "@/domain/couriers";
 import { emptyStart, readStart, startFromPoint, type StartFields } from "@/domain/courierForm";
-import { AutoAssignReport } from "@/features/auto-assign/AutoAssignReport";
+import { AutoAssignDialog } from "@/features/auto-assign/AutoAssignDialog";
 import { useAutoAssign } from "@/features/auto-assign/useAutoAssign";
 import { Legend } from "@/features/map/Legend";
 import { MapView } from "@/features/map/MapView";
@@ -42,7 +42,7 @@ export function Dashboard({ state, shapes, loadError }: Props) {
   const route = useAppRoute();
   const { toast, showToast, undo } = useToast();
   const regions = useRegionEditor(state.couriers);
-  const autoAssign = useAutoAssign((message) => showToast(message, undefined, "error"));
+  const autoAssign = useAutoAssign((message) => showToast(message));
   const orderList = useOrderList(state);
   const pointHighlight = usePointHighlight();
   const split = useMapSplit();
@@ -81,7 +81,7 @@ export function Dashboard({ state, shapes, loadError }: Props) {
 
   return (
     <div className="flex h-screen flex-col max-[1000px]:h-auto max-[1000px]:min-h-screen">
-      <Header autoAssignBusy={autoAssign.busy} onAutoAssign={autoAssign.run} search={route.search} />
+      <Header autoAssignBusy={autoAssign.dialogOpen} onAutoAssign={autoAssign.open} search={route.search} />
 
       <main className="flex min-h-0 flex-1 gap-3 p-3 max-[1000px]:flex-col max-sm:p-2">
         <section ref={split.columnRef} className="flex min-h-0 min-w-0 flex-1 flex-col max-[1000px]:flex-none max-[1000px]:gap-3">
@@ -159,7 +159,6 @@ export function Dashboard({ state, shapes, loadError }: Props) {
         <aside ref={asideRef} className={`${panel} flex w-110 flex-none scroll-mt-2 flex-col max-[1000px]:w-full`}>
           {!isAdding && <SideTabs active={route.tab} search={route.search} />}
           <div className="no-scrollbar flex flex-1 flex-col gap-3 overflow-y-auto p-4 max-[1000px]:overflow-visible max-sm:p-3">
-            {autoAssign.result && <AutoAssignReport result={autoAssign.result} couriers={state.couriers} onClose={autoAssign.close} onSelectOrder={route.selectOrder} />}
             <SidePanelRoutes
               state={state}
               colors={colors}
@@ -181,6 +180,20 @@ export function Dashboard({ state, shapes, loadError }: Props) {
         </aside>
       </main>
 
+      {autoAssign.dialogOpen && (
+        <AutoAssignDialog
+          plan={autoAssign.plan}
+          couriers={state.couriers}
+          orders={state.orders}
+          colors={colors}
+          checking={autoAssign.checking}
+          confirming={autoAssign.confirming}
+          error={autoAssign.error}
+          onConfirm={autoAssign.confirm}
+          onCancel={autoAssign.cancel}
+          onCheckAgain={autoAssign.open}
+        />
+      )}
       {toast && <Toast key={toast.id} message={toast.text} tone={toast.tone} onUndo={undo} />}
       {loadError && <Toast message={loadError} tone="error" />}
     </div>

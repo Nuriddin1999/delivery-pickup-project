@@ -97,7 +97,14 @@ export interface CandidateList {
   candidates: Candidate[];
 }
 
+/** One order of an auto-assign plan, as confirmed by the dispatcher. */
+export interface PlanItem {
+  order_id: string;
+  courier_id: string;
+}
+
+/** An auto-assign plan (GET) or what was given out (POST). Assigned comes grouped by courier, in route order. */
 export interface AutoAssignResult {
-  assigned: { order_id: string; courier_id: string; added_km: number }[];
+  assigned: (PlanItem & { added_km: number })[];
   unplaced: { order_id: string; reason: string }[];
 }

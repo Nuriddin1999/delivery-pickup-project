@@ -26,9 +26,9 @@ export function Header({ autoAssignBusy, onAutoAssign, search }: Props) {
           className={cn(onDark, "cursor-pointer disabled:opacity-60")}
           onClick={onAutoAssign}
           disabled={autoAssignBusy}
-          title="Give every free order to the nearest courier who is allowed to take it"
+          title="Plan who gets every free order; nothing is given out until you confirm"
         >
-          {autoAssignBusy ? "Assigning…" : <>Auto-assign<span className="max-sm:hidden"> free orders</span></>}
+          {autoAssignBusy ? "Checking…" : <>Auto-assign<span className="max-sm:hidden"> free orders</span></>}
         </button>
         <Link to={{ pathname: paths.newCourier, search }} className="rounded-lg bg-brand-500 px-3.5 py-1.5 text-[14px] font-semibold whitespace-nowrap text-white shadow-sm hover:bg-brand-600 max-sm:px-2.5 max-sm:text-[13px]">
           + <span className="max-sm:hidden">Add </span>courier
