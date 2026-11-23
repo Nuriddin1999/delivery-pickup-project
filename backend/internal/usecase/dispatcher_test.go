@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"errors"
+	"math"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -249,6 +250,35 @@ func TestAutoAssign(t *testing.T) {
 	}
 	if again := d.AutoAssign(); len(again.Assigned) != 0 {
 		t.Errorf("second run assigned %d more", len(again.Assigned))
+	}
+}
+
+// On the seed data the old one-by-one choice placed 13 orders in 95.30 km:
+// o23 took Kamola's room, so o14, o18 and o24 were left out. Planning all
+// orders together places one more in far fewer km, and gives each courier's
+// stops in the order of their shortest route.
+func TestAutoAssignPlansAllOrdersTogether(t *testing.T) {
+	d := newDispatcher(t)
+	res := d.AutoAssign()
+	if len(res.Assigned) < 14 {
+		t.Errorf("placed %d, want at least 14", len(res.Assigned))
+	}
+	total, added := 0.0, 0.0
+	for _, c := range d.Overview().Couriers {
+		total += c.Route.TotalKm
+		if c.Route.TotalKm != c.ShorterRoute.TotalKm {
+			t.Errorf("%s: route %.2f km, shorter order %.2f km; auto-assign should give stops in the short order",
+				c.Courier.Name, c.Route.TotalKm, c.ShorterRoute.TotalKm)
+		}
+	}
+	for _, p := range res.Assigned {
+		added += p.AddedKm
+	}
+	if total >= 95.30 {
+		t.Errorf("total %.2f km, want less than the 95.30 km of the one-by-one choice", total)
+	}
+	if math.Abs(added-total) > 0.05 {
+		t.Errorf("added km per order sum to %.2f, routes total %.2f", added, total)
 	}
 }
 

@@ -25,9 +25,11 @@ type AutoAssignResult struct {
 	Unplaced []Unplaced
 }
 
-// AutoAssign gives every free, valid order to the nearest allowed courier
-// (see domain.ChooseNearest), oldest order first. Orders that already have
-// a courier are left alone.
+// AutoAssign gives the free, valid orders to couriers allowed to take them,
+// planning all of them together (see domain.PlanAssignments): as many orders
+// placed as possible, then as few km as possible. Orders that already have a
+// courier are left alone. Orders it cannot place are listed, oldest first,
+// with the reason.
 func (d *Dispatcher) AutoAssign() AutoAssignResult {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -36,23 +38,25 @@ func (d *Dispatcher) AutoAssign() AutoAssignResult {
 	orders := d.repo.Orders()
 	res := AutoAssignResult{Assigned: []Placement{}, Unplaced: []Unplaced{}}
 
+	index := make(map[string]int, len(orders))
+	for i, o := range orders {
+		index[o.ID] = i
+	}
+	for _, a := range domain.PlanAssignments(couriers, orders, d.city.Hub.Point) {
+		i := index[a.OrderID]
+		o := orders[i]
+		o.AssignTo(a.CourierID, d.repo.NextAssignSeq())
+		orders[i] = o
+		d.repo.SaveOrder(o)
+		res.Assigned = append(res.Assigned, Placement{o.ID, a.CourierID, a.AddedKm})
+	}
+
+	// Explained against the loads after the plan, so "full" names the
+	// couriers who could have taken it had they had room.
 	for _, i := range freeOrdersOldestFirst(orders) {
 		o := orders[i]
-		if o.Broken() {
-			res.Unplaced = append(res.Unplaced, Unplaced{o.ID, domain.WhyNobodyCanTake(couriers, o)})
-			continue
-		}
-
-		choice, ok, full := domain.ChooseNearest(o, couriers, orders, d.city.Hub.Point)
-		if !ok {
-			res.Unplaced = append(res.Unplaced, Unplaced{o.ID, whyNotPlaced(couriers, o, full)})
-			continue
-		}
-
-		o.AssignTo(choice.Courier.ID, d.repo.NextAssignSeq())
-		orders[i] = o // later choices see the new load
-		d.repo.SaveOrder(o)
-		res.Assigned = append(res.Assigned, Placement{o.ID, choice.Courier.ID, choice.AddedKm})
+		_, _, full := domain.ChooseNearest(o, couriers, orders, d.city.Hub.Point)
+		res.Unplaced = append(res.Unplaced, Unplaced{o.ID, whyNotPlaced(couriers, o, full)})
 	}
 	return res
 }
