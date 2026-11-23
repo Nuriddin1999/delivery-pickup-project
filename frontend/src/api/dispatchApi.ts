@@ -1,5 +1,5 @@
 import { request } from "./client";
-import type { AutoAssignResult, CandidateList, Courier, Kind, DispatchState, NewCourierInput, Order } from "./types";
+import type { AutoAssignResult, CandidateList, Courier, Kind, DispatchState, NewCourierInput, Order, PlanItem } from "./types";
 
 const id = encodeURIComponent;
 
@@ -18,5 +18,8 @@ export const dispatchApi = {
   /** Assigns a free order, or moves an assigned one to another courier. */
   assign: (orderId: string, courierId: string) => request<Order>("PUT", `/api/orders/${id(orderId)}/courier`, { courier_id: courierId }),
   unassign: (orderId: string) => request<Order>("DELETE", `/api/orders/${id(orderId)}/courier`),
-  autoAssign: () => request<AutoAssignResult>("POST", "/api/auto-assign"),
+  /** What auto-assign would do; changes nothing. */
+  planAutoAssign: () => request<AutoAssignResult>("GET", "/api/auto-assign"),
+  /** Gives out exactly the confirmed plan, all or nothing (409 plan_outdated when the data changed). */
+  applyAutoAssign: (assignments: PlanItem[]) => request<AutoAssignResult>("POST", "/api/auto-assign", { assignments }),
 };

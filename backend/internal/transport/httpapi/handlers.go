@@ -1,10 +1,13 @@
 package httpapi
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"strings"
 
 	"delivery/internal/domain"
+	"delivery/internal/usecase"
 )
 
 func (h *handlers) getState(w http.ResponseWriter, r *http.Request) {
@@ -99,8 +102,43 @@ func (h *handlers) getCandidates(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toCandidatesResponse(id, cands))
 }
 
+// planAutoAssign shows what auto-assign would do, changing nothing.
+func (h *handlers) planAutoAssign(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, toAutoAssignResponse(h.dispatcher.PlanAutoAssign()))
+}
+
+// autoAssign with {"assignments": [...]} gives out exactly that confirmed
+// plan, all or nothing. With no body it plans and gives out in one step.
 func (h *handlers) autoAssign(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, toAutoAssignResponse(h.dispatcher.AutoAssign()))
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, errorResponse{Code: "bad_request", Error: "The request body is too large"})
+		return
+	}
+	if len(bytes.TrimSpace(body)) == 0 {
+		writeJSON(w, http.StatusOK, toAutoAssignResponse(h.dispatcher.AutoAssign()))
+		return
+	}
+
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	var req applyPlanRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if req.Assignments == nil {
+		writeError(w, domain.FieldError("assignments", "assignments is required: the plan to give out"))
+		return
+	}
+	plan := make([]usecase.PlanItem, len(*req.Assignments))
+	for i, a := range *req.Assignments {
+		plan[i] = usecase.PlanItem{OrderID: a.OrderID, CourierID: a.CourierID}
+	}
+	res, err := h.dispatcher.ApplyAutoAssign(plan)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toAutoAssignResponse(res))
 }
 
 // markStopDone takes no body: the path says who marks which stop.

@@ -23,6 +23,7 @@ const (
 	CodeOutOfOrder      = "out_of_order"
 	CodeOrderDone       = "order_done"
 	CodePastHub         = "past_hub"
+	CodePlanOutdated    = "plan_outdated"
 )
 
 // Refusal is a rule a request broke, with a sentence for the dispatcher.

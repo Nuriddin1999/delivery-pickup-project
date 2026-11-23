@@ -38,6 +38,15 @@ type setKindsRequest struct {
 	Kinds *[]string `json:"kinds"`
 }
 
+// applyPlanRequest is the body of POST /api/auto-assign that gives out a
+// plan the dispatcher confirmed.
+type applyPlanRequest struct {
+	Assignments *[]struct {
+		OrderID   string `json:"order_id"`
+		CourierID string `json:"courier_id"`
+	} `json:"assignments"`
+}
+
 // assignRequest is the body of PUT /api/orders/{id}/courier.
 type assignRequest struct {
 	CourierID string `json:"courier_id"`
